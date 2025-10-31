@@ -24,17 +24,29 @@ To create a **“Glass Government”** ecosystem — where public funds are **tr
 ## ⚙️ System Architecture
 
 ```
-Central Govt → State Govt → District Admin → Beneficiary
-       |               |             |               |
-       └── Event Logs → Blockchain Ledger (Foundry)
-                          ↓
-                      MongoDB Store
-                          ↓
-                    FastAPI Orchestrator
-                          ↓
-                AI / ML Anomaly Detection
-                          ↓
-                 Public Dashboard (React)
+Central Govt ──► State Govt ──► District Admin ──► Beneficiary
+     │               │               │                  │
+     └───────────────┴───────────────┴──────────────────┘
+                      ▼ Event Logs
+            ┌────────────────────────────┐
+            │ Blockchain Ledger (Foundry)│
+            └────────────────────────────┘
+                      ▼
+            ┌────────────────────────────┐
+            │      MongoDB Store         │
+            └────────────────────────────┘
+                      ▼
+            ┌────────────────────────────┐
+            │   FastAPI Orchestrator     │
+            └────────────────────────────┘
+                      ▼
+            ┌────────────────────────────┐
+            │ AI / ML Anomaly Detection  │
+            └────────────────────────────┘
+                      ▼
+            ┌────────────────────────────┐
+            │ Public Dashboard (React)   │
+            └────────────────────────────┘
 ```
 
 ### 🧩 Layer Breakdown
