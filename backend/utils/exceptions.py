@@ -1,0 +1,2 @@
+class PSTLException(Exception):
+    pass
