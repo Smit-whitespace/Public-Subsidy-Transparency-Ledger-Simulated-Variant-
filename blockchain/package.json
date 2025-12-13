@@ -1,4 +1,25 @@
 {
-  "name": "blockchain",
-  "dependencies": {}
+  "name": "subsidy-proof-registry",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hardhat project for SubsidyProofRegistry smart contract and blockchain interaction scripts",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "scripts": {
+    "clean": "rm -rf cache artifacts",
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
+    "verify": "hardhat run scripts/verify.js",
+    "read:hash": "hardhat run scripts/readhash.js",
+    "write:hash": "hardhat run scripts/writeHash.js"
+  },
+  "dependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "@nomiclabs/hardhat-etherscan": "^3.0.0",
+    "hardhat": "^2.19.0"
+  }
 }

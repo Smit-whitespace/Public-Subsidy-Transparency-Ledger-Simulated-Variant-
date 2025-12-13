@@ -1,1 +1,19 @@
-FROM node:18-alpine
+FROM node:18-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    python3 \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY ./blockchain/package.json /app/package.json
+
+RUN npm install --legacy-peer-deps
+
+COPY ./blockchain /app
+
+EXPOSE 8545
+
+CMD ["npx", "hardhat", "node"]
