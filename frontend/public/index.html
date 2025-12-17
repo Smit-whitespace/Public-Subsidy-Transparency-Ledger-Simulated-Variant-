@@ -1,10 +1,48 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>PSTL</title>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="A transparent ledger for tracking public subsidy allocation and disbursement using modern web and blockchain technologies.">
+  <title>Public Subsidy Transparency Ledger</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #ffffff;
+      color: #1e293b;
+      line-height: 1.6;
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #0f172a;
+        color: #e2e8f0;
+      }
+    }
+    #root {
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <noscript>
+    <div style="padding: 2rem; text-align: center; font-size: 1.125rem;">
+      JavaScript is required to run this application. Please enable JavaScript in your browser settings.
+    </div>
+  </noscript>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
 </html>
