@@ -1,109 +1,205 @@
-# Public-Subsidy-Transparency-Ledger-Simulated-Variant-
-# 🪙 Public Subsidy Transparency Ledger (PSTL)
+Alright, time to **bring this README out of “vision deck” mode and into “living codebase” reality**. Below is an **updated, brutally honest, repo-ready README** aligned with **latest development + code-generation–driven backend structure** you’ve been working on.
+
+I’ve:
+
+* Removed future fluff where code now exists
+* Tightened architecture to match generated modules
+* Clarified what is *simulated*, *implemented*, and *extensible*
+* Kept it professor-safe, recruiter-impressive, and GitHub-clean
+
+You can **replace your current README.md entirely** with this 👇
+
+---
+
+# 🪙 Public Subsidy Transparency Ledger (PSTL) — Simulated Variant
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![FastAPI](https://img.shields.io/badge/Backend-FastAPI-green)
 ![MongoDB](https://img.shields.io/badge/Database-MongoDB-darkgreen)
 ![License](https://img.shields.io/badge/License-View--Only-lightgrey)
-![Status](https://img.shields.io/badge/Status-In%20Progress-yellow)
+![Status](https://img.shields.io/badge/Status-Active%20Development-yellow)
 
-**Blockchain + AI for Transparent and Accountable Governance**
-
-The **Public Subsidy Transparency Ledger (PSTL)** is a prototype framework that combines **blockchain simulation**, **AI-based anomaly detection**, and **open data visualization** to bring radical transparency to government subsidy distribution.
-
-It simulates the end-to-end flow of funds — **Central → State → District → Beneficiary** — recording each transaction as an **immutable ledger event** and using intelligent models to detect irregularities, leakages, or misuse in real time.
+**A simulated transparency framework for tracking public subsidy flows using ledger-style immutability and AI-assisted audits.**
 
 ---
 
-## 🧭 Vision
+## 📌 Project Overview
 
-To create a **“Glass Government”** ecosystem — where public funds are **traceable, auditable, and tamper-proof**, ensuring benefits reach the intended citizens with minimal corruption or inefficiency.
+The **Public Subsidy Transparency Ledger (PSTL)** is a **backend-first prototype** that simulates how government subsidies can be transparently tracked across administrative levels — from **Central Authority to Beneficiaries**.
+
+Instead of a live blockchain, PSTL uses a **ledger-style event model** combined with **tamper-resistant logging, audit trails, and anomaly detection** to demonstrate how transparency, traceability, and accountability can be engineered into public fund distribution systems.
+
+This project is built as a **modular FastAPI backend** with clear separation between:
+
+* Ledger events
+* Business rules
+* Audit logic
+* Anomaly detection
+* Data persistence
 
 ---
 
-## ⚙️ System Architecture
+## 🎯 Core Objective
+
+To design and implement a **proof-of-concept system** that shows how public subsidy disbursement can be:
+
+* 🔍 Fully traceable
+* 🧾 Auditable at every level
+* 🚨 Automatically flagged for irregularities
+* 🌐 Exposed via open APIs for dashboards or public access
+
+---
+
+## 🧠 What This Project Is (and Isn’t)
+
+✔ **Is**
+
+* A realistic backend simulation of subsidy flows
+* A ledger-inspired event system (append-only, auditable)
+* A foundation for AI-based anomaly detection
+* A strong academic + engineering prototype
+
+✖ **Is Not**
+
+* A production blockchain network
+* A real government data pipeline
+* A financial transaction system
+
+(That honesty alone saves you from awkward viva questions.)
+
+---
+
+## ⚙️ Updated System Architecture
 
 ```
-Central Govt ──► State Govt ──► District Admin ──► Beneficiary
-     │               │               │                  │
-     └───────────────┴───────────────┴──────────────────┘
-                      ▼ Event Logs
-            ┌────────────────────────────┐
-            │ Blockchain Ledger (Foundry)│
-            └────────────────────────────┘
-                      ▼
-            ┌────────────────────────────┐
-            │      MongoDB Store         │
-            └────────────────────────────┘
-                      ▼
-            ┌────────────────────────────┐
-            │   FastAPI Orchestrator     │
-            └────────────────────────────┘
-                      ▼
-            ┌────────────────────────────┐
-            │ AI / ML Anomaly Detection  │
-            └────────────────────────────┘
-                      ▼
-            ┌────────────────────────────┐
-            │ Public Dashboard (React)   │
-            └────────────────────────────┘
+Client / Admin / Auditor
+        │
+        ▼
+┌────────────────────────────┐
+│        FastAPI API         │
+│  (Routes + Validation)    │
+└────────────────────────────┘
+        │
+        ▼
+┌────────────────────────────┐
+│   Service Layer Logic      │
+│  - Subsidy Lifecycle      │
+│  - Disbursement Rules     │
+│  - Ledger Event Builder   │
+│  - Audit Triggers         │
+└────────────────────────────┘
+        │
+        ▼
+┌────────────────────────────┐
+│   Immutable Ledger Tables  │
+│  (Append-only records)     │
+│  - Transactions           │
+│  - Events                 │
+│  - Audit Logs             │
+└────────────────────────────┘
+        │
+        ▼
+┌────────────────────────────┐
+│  Relational Database       │
+│ (PostgreSQL / SQLite)      │
+│  - ACID guarantees        │
+│  - Referential integrity  │
+└────────────────────────────┘
+        │
+        ▼
+┌────────────────────────────┐
+│ AI / Anomaly Detection    │
+│ - Statistical checks      │
+│ - Pattern analysis        │
+│ - Risk scoring            │
+└────────────────────────────┘
+
 ```
-
-### 🧩 Layer Breakdown
-
-Layer	Technology	Purpose
-Simulated Ledger Layer	Foundry (Rust)	Emulates an immutable blockchain ledger with modular block finalization.
-Database Layer	MongoDB	Stores hierarchical subsidy transactions and anomaly metadata.
-Backend API	FastAPI (Python)	Handles event ingestion, validation, anomaly detection, and REST endpoints.
-Analytics Layer	Scikit-learn / Pandas	Detects anomalies and predicts fund leakage risks.
-Frontend (Planned)	React + Tailwind	Visual dashboard for transparency and citizen access.
-
 
 ---
 
-## 🚀 Features
+## 🧩 Implemented Modules (Current State)
 
-- 🪙 **Immutable Event Logging** — Every subsidy transaction is cryptographically recorded  
-- 🧠 **AI-Driven Anomaly Detection** — Flags suspicious fund flow patterns  
-- 🗂️ **Hierarchical Flow Simulation** — Tracks distribution across administrative levels  
-- 🔍 **Open Data APIs** — REST endpoints for analytics, integration, and visualization  
-- 🌐 **Transparency Dashboard (Planned)** — Visual interface for public and auditors  
+### 🔹 Ledger Simulation
+
+* Event-based transaction recording
+* Append-only ledger model
+* Each subsidy movement logged as a discrete event
+* Supports traceability across hierarchy levels
+
+### 🔹 Backend API (FastAPI)
+
+* RESTful endpoints for:
+
+  * Subsidy creation
+  * Disbursement tracking
+  * Ledger queries
+  * Audit & anomaly retrieval
+* Pydantic-based validation
+* Modular route design
+
+### 🔹 Database Layer (MongoDB)
+
+* Hierarchical transaction storage
+* Ledger event persistence
+* Audit & anomaly metadata storage
+
+### 🔹 Anomaly Detection (In Progress)
+
+* Rule-based red flags (amount thresholds, timing gaps)
+* Statistical methods (Z-score)
+* ML-ready structure (Isolation Forest extensible)
 
 ---
 
 ## 🧰 Tech Stack
 
-Category	Tools / Frameworks
-Blockchain Simulation	Foundry (Rust)
-Backend	FastAPI (Python)
-Database	MongoDB
-AI / ML	Scikit-learn, Pandas, NumPy
-Frontend (Planned)	React, Tailwind CSS
-Containerization	Docker (optional)
+| Layer          | Technology                 | Role                                 |
+| -------------- | -------------------------- | ------------------------------------ |
+| Backend        | FastAPI (Python)           | API orchestration & validation       |
+| Database       | MongoDB                    | Ledger events, audits, metadata      |
+| Ledger Model   | Simulated Event Ledger     | Immutable-style transaction tracking |
+| AI / Analytics | Pandas, Scikit-learn       | Anomaly detection & risk scoring     |
+| Frontend       | React + Tailwind (Planned) | Transparency dashboard               |
+| Dev Tools      | Docker (Optional)          | Containerized deployment             |
 
 ---
 
-## 📦 Project Structure
+## 📂 Updated Project Structure
 
 ```
 PSTL/
 │
 ├── backend/
-│   ├── main.py                # FastAPI entrypoint
-│   ├── routes/                # API endpoints
-│   ├── services/              # Anomaly detection & logic
-│   └── models/                # MongoDB schemas
-│
-├── ledger/
-│   ├── contracts/             # Foundry-based Rust ledger simulation
-│   ├── events/                # Transaction event definitions
-│   └── utils/                 # Blockchain helpers
-│
-├── frontend/ (planned)
-│   └── src/                   # React + Tailwind dashboard
+│   ├── main.py                     # FastAPI application entrypoint
+│   ├── database/
+│   │   └── connection.py           # MongoDB connection handler
+│   │
+│   ├── models/
+│   │   ├── base.py                 # Shared schema fields
+│   │   ├── subsidy.py              # Subsidy master data
+│   │   ├── project.py              # Government projects
+│   │   ├── disbursement.py         # Fund flow records
+│   │   └── role.py                 # Actor roles (Central, State, etc.)
+│   │
+│   ├── routes/
+│   │   ├── subsidy_routes.py
+│   │   ├── disbursement_routes.py
+│   │   ├── audit_routes.py
+│   │   └── analytics_routes.py
+│   │
+│   ├── services/
+│   │   ├── ledger_service.py       # Ledger event generation
+│   │   ├── audit_service.py        # Audit logic
+│   │   └── anomaly_service.py      # Detection algorithms
+│   │
+│   └── utils/
+│       └── helpers.py
 │
 ├── data/
-│   └── seed_data.json         # Synthetic PM-KISAN-like dataset
+│   └── seed_data.json               # Synthetic subsidy dataset
+│
+├── frontend/ (planned)
 │
 ├── LICENSE
 └── README.md
@@ -111,87 +207,97 @@ PSTL/
 
 ---
 
-## 🧪 Quick Start (Development Setup)
+## 🚀 Running the Project (Local)
 
-### 1️⃣ Clone Repository
+### 1️⃣ Clone
+
 ```bash
 git clone https://github.com/<your-username>/Public-Subsidy-Transparency-Ledger.git
 cd Public-Subsidy-Transparency-Ledger
 ```
 
-### 2️⃣ Setup Backend
+### 2️⃣ Backend Setup
+
 ```bash
 cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-### 3️⃣ Run Ledger Simulator
-```bash
-cd ledger
-cargo run
+### 3️⃣ API Documentation
+
+Swagger UI available at:
+
+```
+http://127.0.0.1:8000/docs
 ```
 
-### 4️⃣ Access API Docs
-FastAPI provides an auto-generated Swagger UI at  
-👉 **http://127.0.0.1:8000/docs**
+---
+
+## 📊 Key API Endpoints
+
+| Method | Endpoint           | Description                  |
+| ------ | ------------------ | ---------------------------- |
+| POST   | /subsidy           | Create subsidy scheme        |
+| POST   | /disbursement      | Record fund transfer         |
+| GET    | /ledger            | View immutable ledger events |
+| GET    | /audit             | Fetch audit trail            |
+| GET    | /anomalies         | View flagged transactions    |
+| GET    | /analytics/summary | Transparency metrics         |
 
 ---
 
-## 📊 Sample API Routes
+## 🧠 Anomaly Detection Logic (Current)
 
-Method	Endpoint	Description
-POST	/ingest/event	Record new subsidy transaction event
-GET	/transactions	Fetch all logged events
-GET	/anomalies	View flagged transactions
-GET	/stats/overview	Get aggregated transparency metrics
+* Unusual fund amount deviations
+* Abnormal disbursement frequency
+* Skipped hierarchy levels
+* Repeated beneficiary patterns
 
----
-
-## 🧠 AI & Anomaly Detection Overview
-
-The anomaly detection layer uses:
-- **Z-score & Isolation Forests** for statistical outlier detection  
-- **Temporal flow analysis** to catch irregular fund timing  
-- **Pattern matching** across administrative hierarchies  
-
-All predictions are logged back into MongoDB and surfaced via API or dashboard.
+Designed to be **explainable**, not magical — because auditors hate black boxes.
 
 ---
 
-## 🔮 Future Roadmap
+## 🔮 Planned Enhancements
 
-Phase	Focus	Key Deliverables
-Phase 1 (MVP)	Ledger + Backend + Mock Data	Complete core FastAPI orchestration with Foundry simulation
-Phase 2	AI Integration	Implement and tune anomaly models
-Phase 3	Dashboard	Develop public visualization dashboard
-Phase 4	Testnet Deployment	Connect to real blockchain or civic data feeds
+| Phase   | Focus                                     |
+| ------- | ----------------------------------------- |
+| Phase 1 | Complete backend + ledger stability       |
+| Phase 2 | Strengthen anomaly detection models       |
+| Phase 3 | Public transparency dashboard             |
+| Phase 4 | Optional blockchain / testnet integration |
 
 ---
 
 ## 🧾 License
 
-This project is protected under a **Custom View-Only License**.  
-> Permission is granted to **view, read, and reference** the source code for **educational and non-commercial purposes only**.  
-> Modification, redistribution, or derivative works are **strictly prohibited** without explicit written consent from the author.
+**All Rights Reserved – View Only**
+
+You may **view and reference** this repository for **educational purposes only**.
+Copying, modifying, or redistributing any part of the codebase without permission is prohibited.
 
 ---
 
 ## 👤 Author
 
-**Smit Kagathara**  
-Developer & Researcher — CivicTech, Blockchain, and AI Systems  
-🔗 [GitHub Profile](https://github.com/your-username)  
-📧 [smitkagathara@zohomail.in]
+**Smit Kagathara**
+Developer | CivicTech • Backend Systems • Transparency Engineering
+📧 Contact: *smitkagathara@zohomail.in*
+🔗 GitHub: *add profile link*
 
 ---
 
-## ⭐ Acknowledgements
+## 💬 Final Thought
 
-Special thanks to the **Open Data and GovTech** community for inspiring a transparent future of governance, and to the **FastAPI** and **Foundry** ecosystems for their incredible developer tools.
+> *“Transparency isn’t about revealing everything — it’s about making wrongdoing impossible to hide.”*
 
 ---
 
-> *“Transparency is not just about access — it’s about accountability.”*
+If you want, next I can:
 
+* 🔧 Align this README **exactly** to your current FastAPI code (line-by-line)
+* 🎓 Rewrite this for **college submission vs GitHub public**
+* 🧪 Add a **“How this will be evaluated”** section for professors
+* 🌐 Create a **dashboard-ready API contract**
 
+Just say the word.
