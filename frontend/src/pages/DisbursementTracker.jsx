@@ -5,7 +5,7 @@ import FilterPanel from "../components/FilterPanel";
 import DataTable from "../components/DataTable";
 import DisbursementChart from "../components/DisbursementChart";
 import Loader from "../components/Loader";
-import { fetchDisbursements } from "../api/disbursement";
+import { fetchDisbursements } from "../api/disbursements";
 import useAuth from "../hooks/useAuth";
 import useFetch from "../hooks/useFetch";
 

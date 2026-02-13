@@ -8,7 +8,7 @@ import Loader from "../components/Loader";
 import SubsidyCard from "../components/SubsidyCard";
 import BlockchainProofBadge from "../components/BlockchainProofBadge";
 import { fetchSubsidyById } from "../api/subsidies";
-import { fetchDisbursements } from "../api/disbursement";
+import { fetchDisbursements } from "../api/disbursements";
 import useAuth from "../hooks/useAuth";
 import useFetch from "../hooks/useFetch";
 
