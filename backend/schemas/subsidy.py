@@ -22,7 +22,7 @@ class SubsidyBase(BaseModel):
     amount: Decimal = Field(..., description="Authorized amount as Decimal")
     currency: str = Field("INR", min_length=3, max_length=3, description="ISO 4217 code")
     description: Optional[str] = Field(None, description="Long description")
-    metadata: Optional[str] = Field(None, description="Optional JSON string for free-form metadata")
+    meta_data: Optional[str] = Field(None, description="Optional JSON string for free-form metadata")
     is_active: Optional[bool] = Field(True, description="Is the subsidy active?")
     proof_id: Optional[int] = Field(None, description="Optional on-chain proof id")
     start_date: Optional[datetime] = Field(None, description="Optional start datetime")
@@ -83,7 +83,7 @@ class SubsidyCreate(SubsidyBase):
             return "INR"
         return v.strip().upper()
     
-    @validator("metadata", pre=True)
+    @validator("meta_data", pre=True)
     def normalize_metadata(cls, v):
         """
         Convert metadata dict to compact JSON string.
@@ -109,7 +109,7 @@ class SubsidyUpdate(BaseModel):
     amount: Optional[str | float | Decimal] = Field(None, description="Authorized amount (accepts string, float, or Decimal)")
     currency: Optional[str] = Field(None, min_length=3, max_length=3, description="ISO 4217 code")
     description: Optional[str] = Field(None, description="Long description")
-    metadata: Optional[str] = Field(None, description="Optional JSON string for free-form metadata")
+    meta_data: Optional[str] = Field(None, description="Optional JSON string for free-form metadata")
     is_active: Optional[bool] = Field(None, description="Is the subsidy active?")
     proof_id: Optional[int] = Field(None, description="Optional on-chain proof id")
     start_date: Optional[datetime] = Field(None, description="Optional start datetime")
@@ -161,7 +161,7 @@ class SubsidyUpdate(BaseModel):
             return None
         return v.strip().upper()
     
-    @validator("metadata", pre=True)
+    @validator("meta_data", pre=True)
     def normalize_metadata(cls, v):
         """
         Convert metadata dict to compact JSON string.

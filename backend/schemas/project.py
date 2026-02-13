@@ -18,7 +18,7 @@ class ProjectBase(BaseModel):
     name: str = Field(..., max_length=255, description="Project name")
     subsidy_id: Optional[int] = Field(None, ge=1, description="Related subsidy id")
     description: Optional[str] = Field(None, description="Long description")
-    metadata: Optional[str] = Field(None, description="Optional JSON string for free-form metadata")
+    meta_data: Optional[str] = Field(None, description="Optional JSON string for free-form metadata")
     owner: Optional[str] = Field(None, max_length=255, description="Department or owner identifier")
     start_date: Optional[datetime] = Field(None, description="Start datetime")
     end_date: Optional[datetime] = Field(None, description="End datetime")
@@ -49,8 +49,8 @@ class ProjectCreate(ProjectBase):
             return v
         return v.strip().lower()
     
-    @validator("metadata", pre=True)
-    def normalize_metadata(cls, v):
+    @validator("meta_data", pre=True)
+    def normalize_meta_data(cls, v):
         """
         Convert metadata dict to compact JSON string.
         Accepts dict or string input; stores as string.
@@ -73,7 +73,7 @@ class ProjectUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=255, description="Project name")
     subsidy_id: Optional[int] = Field(None, ge=1, description="Related subsidy id")
     description: Optional[str] = Field(None, description="Long description")
-    metadata: Optional[str] = Field(None, description="Optional JSON string for free-form metadata")
+    meta_data: Optional[str] = Field(None, description="Optional JSON string for free-form metadata")
     owner: Optional[str] = Field(None, max_length=255, description="Department or owner identifier")
     start_date: Optional[datetime] = Field(None, description="Start datetime")
     end_date: Optional[datetime] = Field(None, description="End datetime")
@@ -96,8 +96,8 @@ class ProjectUpdate(BaseModel):
             return None
         return v.strip().lower()
     
-    @validator("metadata", pre=True)
-    def normalize_metadata(cls, v):
+    @validator("meta_data", pre=True)
+    def normalize_meta_data(cls, v):
         """
         Convert metadata dict to compact JSON string.
         Accepts dict or string input; stores as string.

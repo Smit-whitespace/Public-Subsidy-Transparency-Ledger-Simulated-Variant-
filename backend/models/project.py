@@ -90,7 +90,7 @@ class Project(Base):
     # application-specific configuration. Currently stored as Text for database portability, but
     # if you need to query or index specific fields within this JSON, consider migrating to
     # PostgreSQL's JSONB type which provides efficient querying and GIN indexing capabilities.
-    metadata: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    meta_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # Identifier of the department, organization, or individual that owns or manages this project.
     # This is stored as a flexible string rather than a foreign key to avoid creating tight coupling
