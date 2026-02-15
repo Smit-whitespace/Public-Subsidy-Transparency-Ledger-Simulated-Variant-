@@ -38,18 +38,33 @@ async function request(url, options = {}) {
 }
 
 export async function login(username, password) {
-  if (!username) {
-    throw new Error("username is required");
-  }
-  if (!password) {
-    throw new Error("password is required");
-  }
+  if (!username) throw new Error("username is required");
+  if (!password) throw new Error("password is required");
 
   const url = `${API_BASE_URL}${AUTH_BASE_PATH}/login`;
-  const body = { username, password };
 
-  return await request(url, { method: "POST", body });
+  const formData = new URLSearchParams();
+  formData.append("username", username);
+  formData.append("password", password);
+  formData.append("grant_type", "password");
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Accept": "application/json"
+    },
+    body: formData.toString()
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.detail || "Login failed");
+  }
+
+  return await response.json();
 }
+
 
 export async function getCurrentUser(token) {
   if (!token) {

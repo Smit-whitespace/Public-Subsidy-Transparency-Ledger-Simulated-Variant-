@@ -33,7 +33,7 @@ from backend.services.auth_service import get_password_hash, verify_password
 from backend.utils.jwt import create_token, decode_token
 
 
-router = APIRouter(prefix="/api/auth", tags=["authentication"])
+router = APIRouter(tags=["authentication"])
 
 # OAuth2 scheme for bearer token authentication. This tells FastAPI to look for tokens in the
 # Authorization header with the format "Bearer <token>". The tokenUrl parameter specifies where
@@ -259,7 +259,6 @@ def login_user(
         token_payload = {
             "user_id": user.id,
             "username": user.username,
-            "exp": datetime.utcnow() + timedelta(minutes=60)
         }
         
         access_token = create_token(token_payload)

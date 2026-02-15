@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import DataTable from "../components/DataTable";
@@ -12,36 +13,52 @@ import { fetchDisbursements } from "../api/disbursements";
 import useAuth from "../hooks/useAuth";
 import useFetch from "../hooks/useFetch";
 
-export default function SubsidyDetails({ subsidyId = null }) {
+export default function SubsidyDetails() {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const { user, token, isAuthenticated } = useAuth();
+
+  const subsidyId = id ? parseInt(id, 10) : null;
 
   const {
     data: subsidyData,
     loading: subsidyLoading,
-    error: subsidyError
+    error: subsidyError,
+    execute: loadSubsidy
   } = useFetch(
-    () => (subsidyId ? fetchSubsidyById(subsidyId, token) : null),
-    {
-      immediate: isAuthenticated && subsidyId
-    }
+    () => fetchSubsidyById(subsidyId, token),
+    { immediate: false }
   );
 
   const {
     data: disbursementData,
     loading: disbursementsLoading,
-    error: disbursementsError
+    error: disbursementsError,
+    execute: loadDisbursements
   } = useFetch(
     () =>
-      subsidyId
-        ? fetchDisbursements({ subsidyId, limit: 50, offset: 0, token })
-        : null,
-    {
-      immediate: isAuthenticated && subsidyId
-    }
+      fetchDisbursements({
+        subsidyId,
+        limit: 50,
+        offset: 0,
+        token
+      }),
+    { immediate: false }
   );
 
-  if (!isAuthenticated || !subsidyId) {
-    return <div className="subsidy-details error">Invalid access</div>;
+  useEffect(() => {
+    if (isAuthenticated && token && subsidyId) {
+      loadSubsidy();
+      loadDisbursements();
+    }
+  }, [isAuthenticated, token, subsidyId, loadSubsidy, loadDisbursements]);
+
+  if (!isAuthenticated) {
+    return <div className="subsidy-details unauthorized">Access denied</div>;
+  }
+
+  if (!subsidyId || isNaN(subsidyId)) {
+    return <div className="subsidy-details error">Invalid subsidy ID</div>;
   }
 
   if (subsidyLoading || disbursementsLoading) {
@@ -55,6 +72,11 @@ export default function SubsidyDetails({ subsidyId = null }) {
   const subsidy = subsidyData || {};
   const disbursements = disbursementData?.data || disbursementData || [];
   const audits = subsidy.audits || [];
+
+  function handleDisbursementClick(row) {
+    if (!row?.id) return;
+    navigate(`/disbursements`);
+  }
 
   const columns = [
     {
@@ -116,7 +138,11 @@ export default function SubsidyDetails({ subsidyId = null }) {
 
           <section>
             <h2>Disbursement Records</h2>
-            <DataTable columns={columns} data={disbursements} />
+            <DataTable
+              columns={columns}
+              data={disbursements}
+              onRowClick={handleDisbursementClick}
+            />
           </section>
 
           <section>

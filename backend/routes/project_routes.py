@@ -31,7 +31,7 @@ from backend.models.project import Project as ProjectModel
 from backend.schemas.project import Project, ProjectCreate, ProjectUpdate
 
 
-router = APIRouter(prefix="/api/projects", tags=["projects"])
+router = APIRouter( tags=["projects"])
 
 
 @router.get("/", response_model=List[Project])

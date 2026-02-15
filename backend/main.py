@@ -108,12 +108,17 @@ def create_app() -> FastAPI:
         logger.info(f"Application starting - Environment: {settings.ENVIRONMENT}")
 
         try:
-            from backend.database.connection import engine
+            from backend.database.connection import engine, Base
+    
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
             logger.info("Database connectivity check: OK")
+
+            Base.metadata.create_all(bind=engine)
+            logger.info("Database tables created/ensured")
+
         except Exception as e:
-            logger.error(f"Database connectivity check failed: {e}")
+            logger.error(f"Database initialization failed: {e}")
 
         logger.info("Application startup complete")
 

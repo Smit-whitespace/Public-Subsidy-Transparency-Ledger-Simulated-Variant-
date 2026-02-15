@@ -30,7 +30,7 @@ from backend.models.disbursement import Disbursement as DisbursementModel
 from backend.schemas.disbursement import Disbursement, DisbursementCreate, DisbursementUpdate
 
 
-router = APIRouter(prefix="/api/disbursements", tags=["disbursements"])
+router = APIRouter( tags=["disbursements"])
 
 
 @router.get("/", response_model=List[Disbursement])

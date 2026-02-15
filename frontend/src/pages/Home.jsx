@@ -1,15 +1,31 @@
 import React from "react";
+import { Link, Navigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import useAuth from "../hooks/useAuth";
 
 export default function Home() {
+  const { isAuthenticated } = useAuth();
+
+  // If already logged in, redirect to dashboard
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <div className="home-page">
       <Navbar />
+
       <main className="home-content">
         <section className="home-hero">
           <h1>Public Subsidy Transparency Ledger</h1>
           <p>Clarity in public funds. Transparency by design.</p>
+
+          <div className="home-hero-actions">
+            <Link to="/login" className="cta-primary">
+              Login to Continue
+            </Link>
+          </div>
         </section>
 
         <section className="home-features">
@@ -23,12 +39,16 @@ export default function Home() {
         </section>
 
         <section className="home-cta">
-          <p>Explore how public funds move from allocation to impact.</p>
-          <a href="#" className="cta-link">
+          <p>
+            Explore how public funds move from allocation to measurable impact.
+          </p>
+
+          <Link to="/login" className="cta-link">
             Go to Dashboard
-          </a>
+          </Link>
         </section>
       </main>
+
       <Footer />
     </div>
   );

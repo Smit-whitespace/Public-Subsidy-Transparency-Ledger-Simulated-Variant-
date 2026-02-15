@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import DataTable from "../components/DataTable";
 import AuditTimeline from "../components/AuditTimeline";
 import Loader from "../components/Loader";
 import ProjectCard from "../components/ProjectCard";
@@ -12,33 +12,52 @@ import { fetchSubsidies } from "../api/subsidies";
 import useAuth from "../hooks/useAuth";
 import useFetch from "../hooks/useFetch";
 
-export default function ProjectDetails({ projectId = null }) {
+export default function ProjectDetails() {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const { user, token, isAuthenticated } = useAuth();
+
+  const projectId = id ? parseInt(id, 10) : null;
 
   const {
     data: projectData,
     loading: projectLoading,
-    error: projectError
-  } = useFetch(() => (projectId ? fetchProjectById(projectId, token) : null), {
-    immediate: isAuthenticated && projectId
-  });
+    error: projectError,
+    execute: loadProject
+  } = useFetch(
+    () => fetchProjectById(projectId, token),
+    { immediate: false }
+  );
 
   const {
     data: subsidiesData,
     loading: subsidiesLoading,
-    error: subsidiesError
+    error: subsidiesError,
+    execute: loadSubsidies
   } = useFetch(
     () =>
-      projectId
-        ? fetchSubsidies({ projectId, limit: 50, offset: 0, token })
-        : null,
-    {
-      immediate: isAuthenticated && projectId
-    }
+      fetchSubsidies({
+        projectId,
+        limit: 50,
+        offset: 0,
+        token
+      }),
+    { immediate: false }
   );
 
-  if (!isAuthenticated || !projectId) {
-    return <div className="project-details error">Invalid access</div>;
+  useEffect(() => {
+    if (isAuthenticated && token && projectId) {
+      loadProject();
+      loadSubsidies();
+    }
+  }, [isAuthenticated, token, projectId, loadProject, loadSubsidies]);
+
+  if (!isAuthenticated) {
+    return <div className="project-details unauthorized">Access denied</div>;
+  }
+
+  if (!projectId || isNaN(projectId)) {
+    return <div className="project-details error">Invalid project ID</div>;
   }
 
   if (projectLoading || subsidiesLoading) {
@@ -52,6 +71,11 @@ export default function ProjectDetails({ projectId = null }) {
   const project = projectData || {};
   const subsidies = subsidiesData?.data || subsidiesData || [];
   const audits = project.audits || [];
+
+  function handleSubsidyClick(subsidy) {
+    if (!subsidy?.id) return;
+    navigate(`/subsidies/${subsidy.id}`);
+  }
 
   return (
     <div className="project-details">
@@ -85,7 +109,7 @@ export default function ProjectDetails({ projectId = null }) {
                   <SubsidyCard
                     key={subsidy.id || index}
                     subsidy={subsidy}
-                    onClick={() => {}}
+                    onClick={handleSubsidyClick}
                   />
                 ))}
               </div>

@@ -82,7 +82,7 @@ except ImportError:
         return hashlib.sha256(canonical.encode()).hexdigest()
 
 
-router = APIRouter(prefix="/subsidies", tags=["subsidies"])
+router = APIRouter( tags=["subsidies"])
 
 
 def safe_decimal(value) -> Decimal:

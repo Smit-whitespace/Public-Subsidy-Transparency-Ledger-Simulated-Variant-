@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import SearchBar from "../components/SearchBar";
@@ -11,7 +12,9 @@ import useFetch from "../hooks/useFetch";
 import useDebounce from "../hooks/useDebounce";
 
 export default function SubsidyList() {
+  const navigate = useNavigate();
   const { user, token, isAuthenticated } = useAuth();
+
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState({});
 
@@ -25,14 +28,14 @@ export default function SubsidyList() {
         status: filters.status || null,
         token
       }),
-    { immediate: true }
+    { immediate: false }
   );
 
   useEffect(() => {
     if (isAuthenticated && token) {
       execute();
     }
-  }, [debouncedQuery, filters, token, isAuthenticated, execute]);
+  }, [filters, debouncedQuery, token, isAuthenticated, execute]);
 
   if (!isAuthenticated) {
     return <div className="subsidy-list unauthorized">Access denied</div>;
@@ -65,7 +68,8 @@ export default function SubsidyList() {
   }
 
   function handleSubsidyClick(subsidy) {
-    // Placeholder for navigation
+    if (!subsidy?.id) return;
+    navigate(`/subsidies/${subsidy.id}`);
   }
 
   return (
