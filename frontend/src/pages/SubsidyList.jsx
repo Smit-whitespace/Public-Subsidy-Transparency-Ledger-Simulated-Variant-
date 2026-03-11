@@ -1,44 +1,81 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import SearchBar from "../components/SearchBar";
 import FilterPanel from "../components/FilterPanel";
 import SubsidyCard from "../components/SubsidyCard";
 import Loader from "../components/Loader";
-import { fetchSubsidies } from "../api/subsidies";
-import useAuth from "../hooks/useAuth";
+
+import { fetchSubsidies, createSubsidy, deleteSubsidy } from "../services/subsidyService";
+import { useAuth } from "../context/AuthContext";
 import useFetch from "../hooks/useFetch";
-import useDebounce from "../hooks/useDebounce";
+
+const SECTORS = [
+  "Agriculture",
+  "Education",
+  "Healthcare",
+  "Infrastructure",
+  "MSME",
+  "Renewable Energy",
+  "Social Welfare"
+];
 
 export default function SubsidyList() {
+
   const navigate = useNavigate();
-  const { user, token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, user } = useAuth();
+  const isAdmin = user?.role === "admin";
 
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState({});
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newSubsidy, setNewSubsidy] = useState({
+    title: "",
+    recipient: "",
+    sector: "",
+    total_allocation: "",
+    description: "",
+    status: "active"
+  });
+  const [creating, setCreating] = useState(false);
+  const [deletingIds, setDeletingIds] = useState(new Set());
 
-  const debouncedQuery = useDebounce(query, 400);
+  const fetchSubsidyData = useCallback(() => {
 
-  const { data, loading, error, execute } = useFetch(
-    () =>
-      fetchSubsidies({
-        limit: 50,
-        offset: 0,
-        status: filters.status || null,
-        token
-      }),
-    { immediate: false }
-  );
-
-  useEffect(() => {
-    if (isAuthenticated && token) {
-      execute();
+    if (!token) {
+      return Promise.resolve([]);
     }
-  }, [filters, debouncedQuery, token, isAuthenticated, execute]);
 
+    return fetchSubsidies({
+      limit: 50,
+      offset: 0,
+      status: filters.status || null,
+      token
+    });
+
+  }, [filters, token]);
+
+  const {
+    data,
+    loading,
+    error,
+    execute
+  } = useFetch(fetchSubsidyData, { immediate: true });
+
+useEffect(() => {
+  if (isAuthenticated && token) {
+    execute();
+  }  }, [filters, token, isAuthenticated, execute]);
+
+  // Early returns for loading, error, unauthorized states
   if (!isAuthenticated) {
-    return <div className="subsidy-list unauthorized">Access denied</div>;
+    return (
+      <div className="subsidy-list unauthorized">
+        Access denied
+      </div>
+    );
   }
 
   if (loading) {
@@ -46,37 +83,111 @@ export default function SubsidyList() {
   }
 
   if (error) {
-    return <div className="subsidy-list error">Failed to load subsidies</div>;
+    return (
+      <div className="subsidy-list error">
+        Failed to load subsidies
+      </div>
+    );
   }
 
+  // Render create modal when active
+  if (showCreateModal) {
+    return (
+      <div className="subsidy-list">
+        <Navbar />
+        <div className="subsidy-layout">
+          <Sidebar />
+          <main className="subsidy-content">
+            <h1>Create New Subsidy</h1>
+            <form onSubmit={handleCreateSubsidy} className="create-form">
+              <div className="form-group">
+                <label>Title</label>
+                <input
+                  type="text"
+                  value={newSubsidy.title}
+                  onChange={e => setNewSubsidy({...newSubsidy, title: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Recipient</label>
+                <input
+                  type="text"
+                  value={newSubsidy.recipient}
+                  onChange={e => setNewSubsidy({...newSubsidy, recipient: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Sector</label>
+                <select
+                  value={newSubsidy.sector}
+                  onChange={e => setNewSubsidy({...newSubsidy, sector: e.target.value})}
+                  required
+                >
+                  <option value="">Select sector</option>
+                  {SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Total Allocation (INR)</label>
+                <input
+                  type="number"
+                  value={newSubsidy.total_allocation}
+                  onChange={e => setNewSubsidy({...newSubsidy, total_allocation: e.target.value})}
+                  required
+                  min="1"
+                />
+              </div>
+              <div className="form-group">
+                <label>Description</label>
+                <textarea
+                  value={newSubsidy.description}
+                  onChange={e => setNewSubsidy({...newSubsidy, description: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <label>Status</label>
+                <select
+                  value={newSubsidy.status}
+                  onChange={e => setNewSubsidy({...newSubsidy, status: e.target.value})}
+                >
+                  <option value="active">Active</option>
+                  <option value="pending">Pending</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+              <div className="form-actions">
+                <button type="submit" className="btn-primary" disabled={creating}>
+                  {creating ? "Creating..." : "Create Subsidy"}
+                </button>
+                <button type="button" className="btn-secondary" onClick={() => setShowCreateModal(false)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  // Main list view
   const subsidies = data?.data || data || [];
 
   const filterSchema = [
-    {
-      key: "status",
-      label: "Status",
-      type: "text"
-    }
+    { key: "status", label: "Status", type: "text" }
   ];
-
-  function handleFilterChange(updatedFilters) {
-    setFilters(updatedFilters);
-  }
 
   function handleFilterReset() {
     setFilters({});
   }
 
-  function handleSubsidyClick(subsidy) {
-    if (!subsidy?.id) return;
-    navigate(`/subsidies/${subsidy.id}`);
-  }
-
   return (
     <div className="subsidy-list">
-      <Navbar user={user} />
+      <Navbar />
       <div className="subsidy-layout">
-        <Sidebar user={user} />
+        <Sidebar />
         <main className="subsidy-content">
           <h1>Subsidies</h1>
           <p>Browse and track public subsidies</p>
@@ -94,20 +205,33 @@ export default function SubsidyList() {
             <FilterPanel
               filters={filters}
               schema={filterSchema}
-              onChange={handleFilterChange}
+              onChange={setFilters}
               onReset={handleFilterReset}
             />
           </section>
 
           <section>
+            {isAdmin && (
+              <button className="btn-primary" onClick={() => setShowCreateModal(true)} style={{ marginBottom: "1rem" }}>
+                + Create New Subsidy
+              </button>
+            )}
+
             {subsidies.length > 0 ? (
               <div className="subsidies-grid">
                 {subsidies.map((subsidy, index) => (
-                  <SubsidyCard
-                    key={subsidy.id || index}
-                    subsidy={subsidy}
-                    onClick={handleSubsidyClick}
-                  />
+                  <div key={subsidy.id || index} className="subsidy-card-wrapper">
+                    <SubsidyCard subsidy={subsidy} onClick={() => navigate(`/subsidies/${subsidy.id}`)} />
+                    {isAdmin && (
+                      <button
+                        className="btn-delete"
+                        onClick={(e) => handleDeleteSubsidy(subsidy.id, e)}
+                        disabled={deletingIds.has(subsidy.id)}
+                      >
+                        {deletingIds.has(subsidy.id) ? "Deleting..." : "Delete"}
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             ) : (

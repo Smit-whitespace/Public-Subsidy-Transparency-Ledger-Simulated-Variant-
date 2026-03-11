@@ -1,99 +1,130 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+
+import { useAuth } from "./context/AuthContext";
+
+import Loader from "./components/Loader";
+
+/* PAGES */
+
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+
 import AdminDashboard from "./pages/AdminDashboard";
+
 import ProjectList from "./pages/ProjectList";
 import ProjectDetails from "./pages/ProjectDetails";
+
 import SubsidyList from "./pages/SubsidyList";
 import SubsidyDetails from "./pages/SubsidyDetails";
+
 import DisbursementTracker from "./pages/DisbursementTracker";
+
 import AuditTrail from "./pages/AuditTrail";
-import useAuth from "./hooks/useAuth";
+
+/* ---------- ROUTE GUARD ---------- */
 
 function ProtectedRoute({ children }) {
+
   const { isAuthenticated, loading } = useAuth();
 
-  if (loading) return null;
+  if (loading) {
+    return <Loader message="Initializing session..." />;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
   return children;
+
 }
 
-function App() {
+/* ---------- APP ---------- */
+
+export default function App() {
+
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
+    <Routes>
 
-        <Route
-          path="/projects"
-          element={
-            <ProtectedRoute>
-              <ProjectList />
-            </ProtectedRoute>
-          }
-        />
+      {/* PUBLIC ROUTES */}
 
-        <Route
-          path="/projects/:id"
-          element={
-            <ProtectedRoute>
-              <ProjectDetails />
-            </ProtectedRoute>
-          }
-        />
+      <Route path="/" element={<Home />} />
 
-        <Route
-          path="/subsidies"
-          element={
-            <ProtectedRoute>
-              <SubsidyList />
-            </ProtectedRoute>
-          }
-        />
+      <Route path="/login" element={<Login />} />
 
-        <Route
-          path="/subsidies/:id"
-          element={
-            <ProtectedRoute>
-              <SubsidyDetails />
-            </ProtectedRoute>
-          }
-        />
+      {/* PROTECTED ROUTES */}
 
-        <Route
-          path="/disbursements"
-          element={
-            <ProtectedRoute>
-              <DisbursementTracker />
-            </ProtectedRoute>
-          }
-        />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
 
-        <Route
-          path="/audits"
-          element={
-            <ProtectedRoute>
-              <AuditTrail />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+      <Route
+        path="/projects"
+        element={
+          <ProtectedRoute>
+            <ProjectList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/projects/:id"
+        element={
+          <ProtectedRoute>
+            <ProjectDetails />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/subsidies"
+        element={
+          <ProtectedRoute>
+            <SubsidyList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/subsidies/:id"
+        element={
+          <ProtectedRoute>
+            <SubsidyDetails />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/disbursements"
+        element={
+          <ProtectedRoute>
+            <DisbursementTracker />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/audits"
+        element={
+          <ProtectedRoute>
+            <AuditTrail />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* FALLBACK */}
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+
+    </Routes>
+
   );
-}
 
-export default App;
+}

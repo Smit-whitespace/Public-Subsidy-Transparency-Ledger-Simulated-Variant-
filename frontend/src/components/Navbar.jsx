@@ -1,63 +1,80 @@
 import React from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
-export default function Navbar({ user = null, onLogout = () => {} }) {
+export default function Navbar() {
+
+  const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // hide navbar on login page
+  if (location.pathname === "/login") {
+    return null;
+  }
+
+  const navClass = ({ isActive }) =>
+    isActive ? "nav-link active" : "nav-link";
 
   function handleLogout() {
-    onLogout();
+    logout();
     navigate("/login");
   }
 
-  const navLinkClass = ({ isActive }) =>
-    isActive ? "nav-link active" : "nav-link";
-
   return (
-    <header className="app-navbar">
-      <div className="navbar-left">
-        <div className="navbar-brand">
-          <NavLink to="/" className="brand-link">
-            Public Subsidy Transparency Ledger
-          </NavLink>
-        </div>
+    <header className="topbar">
 
-        <nav className="navbar-nav">
-          <NavLink to="/dashboard" className={navLinkClass}>
-            Dashboard
-          </NavLink>
-          <NavLink to="/projects" className={navLinkClass}>
-            Projects
-          </NavLink>
-          <NavLink to="/subsidies" className={navLinkClass}>
-            Subsidies
-          </NavLink>
-          <NavLink to="/disbursements" className={navLinkClass}>
-            Disbursements
-          </NavLink>
-          <NavLink to="/audits" className={navLinkClass}>
-            Audits
-          </NavLink>
-        </nav>
+      <div className="topbar-left">
+
+        <div className="logo">PSTL</div>
+
+        {isAuthenticated && (
+          <nav className="top-nav">
+
+            <NavLink to="/dashboard" className={navClass}>
+              Dashboard
+            </NavLink>
+
+            <NavLink to="/projects" className={navClass}>
+              Projects
+            </NavLink>
+
+            <NavLink to="/subsidies" className={navClass}>
+              Subsidies
+            </NavLink>
+
+            <NavLink to="/disbursements" className={navClass}>
+              Disbursements
+            </NavLink>
+
+            <NavLink to="/audits" className={navClass}>
+              Audits
+            </NavLink>
+
+          </nav>
+        )}
+
       </div>
 
-      <div className="navbar-right">
-        {user ? (
-          <div className="navbar-user">
-            <span className="navbar-username">
-              {user.username}
+      <div className="topbar-right">
+
+        {isAuthenticated && (
+          <>
+            <span className="user-name">
+              {user?.username}
             </span>
-            <button type="button" onClick={handleLogout}>
+
+            <button
+              className="logout-btn"
+              onClick={handleLogout}
+            >
               Logout
             </button>
-          </div>
-        ) : (
-          <div className="navbar-user">
-            <NavLink to="/login" className={navLinkClass}>
-              Login
-            </NavLink>
-          </div>
+          </>
         )}
+
       </div>
+
     </header>
   );
 }

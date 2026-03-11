@@ -1,38 +1,68 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import FilterPanel from "../components/FilterPanel";
 import DataTable from "../components/DataTable";
 import DisbursementChart from "../components/DisbursementChart";
 import Loader from "../components/Loader";
-import { fetchDisbursements } from "../api/disbursements";
-import useAuth from "../hooks/useAuth";
+
+import { fetchDisbursements } from "../services/disbursementService";
+import { useAuth } from "../context/AuthContext";
 import useFetch from "../hooks/useFetch";
+import useDebounce from "../hooks/useDebounce";
 
 export default function DisbursementTracker() {
-  const { user, token, isAuthenticated } = useAuth();
-  const [filters, setFilters] = useState({});
 
-  const { data, loading, error, execute } = useFetch(
-    () =>
-      fetchDisbursements({
-        subsidyId: filters.subsidyId || null,
-        limit: 50,
-        offset: 0,
-        token
-      }),
-    { immediate: true }
-  );
+  const { token, isAuthenticated } = useAuth();
+
+  const [filters, setFilters] = useState({});
+  const [debouncedFilters, setDebouncedFilters] = useState({});
+
+  // Debounce filter changes to avoid instant API calls
+  const debouncedSubsidyId = useDebounce(filters.subsidyId, 500);
 
   useEffect(() => {
+    setDebouncedFilters({
+      subsidyId: debouncedSubsidyId
+    });
+  }, [debouncedSubsidyId]);
+
+  const fetchDisbursementData = useCallback(() => {
+
+    if (!token) {
+      return Promise.resolve([]);
+    }
+
+    return fetchDisbursements({
+      subsidyId: debouncedFilters.subsidyId || null,
+      limit: 50,
+      offset: 0,
+      token
+    });
+
+  }, [debouncedFilters, token]);
+
+  const {
+    data,
+    loading,
+    error,
+    execute
+  } = useFetch(fetchDisbursementData, { immediate: true });
+
+  useEffect(() => {
+
     if (isAuthenticated && token) {
       execute();
     }
-  }, [filters, token, isAuthenticated, execute]);
+
+  }, [debouncedFilters, token, isAuthenticated, execute]);
 
   if (!isAuthenticated) {
     return (
-      <div className="disbursement-tracker unauthorized">Access denied</div>
+      <div className="disbursement-tracker unauthorized">
+        Access denied
+      </div>
     );
   }
 
@@ -67,7 +97,7 @@ export default function DisbursementTracker() {
     {
       key: "amount",
       label: "Amount",
-      render: (row) => (row.amount ? String(row.amount) : "N/A")
+      render: (row) => row.amount ? String(row.amount) : "N/A"
     },
     {
       key: "date",
@@ -102,33 +132,54 @@ export default function DisbursementTracker() {
 
   return (
     <div className="disbursement-tracker">
-      <Navbar user={user} />
+
+      <Navbar />
+
       <div className="disbursement-layout">
-        <Sidebar user={user} />
+
+        <Sidebar />
+
         <main className="disbursement-content">
+
           <h1>Disbursement Tracker</h1>
           <p>Track subsidy disbursements over time</p>
 
           <section>
+
             <FilterPanel
               filters={filters}
               schema={filterSchema}
               onChange={handleFilterChange}
               onReset={handleFilterReset}
             />
+
           </section>
 
           <section>
+
             <h2>Disbursement Timeline</h2>
-            <DisbursementChart disbursements={disbursements} />
+
+            <DisbursementChart
+              disbursements={disbursements}
+            />
+
           </section>
 
           <section>
+
             <h2>Disbursement Records</h2>
-            <DataTable columns={columns} data={disbursements} />
+
+            <DataTable
+              columns={columns}
+              data={disbursements}
+            />
+
           </section>
+
         </main>
+
       </div>
+
     </div>
   );
 }

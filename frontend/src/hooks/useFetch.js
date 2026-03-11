@@ -1,44 +1,68 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
-export default function useFetch(fetcher, options = {}) {
-  if (typeof fetcher !== "function") {
-    throw new Error("fetcher must be a function");
-  }
+export default function useFetch(fetchFunction, options = {}) {
 
-  const { immediate = true, initialData = null } = options;
+  const { immediate = false } = options;
 
-  const [data, setData] = useState(initialData);
-  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(immediate);
   const [error, setError] = useState(null);
 
+  const isMounted = useRef(true);
+  const fetchRef = useRef(fetchFunction);
+
+  useEffect(() => {
+    fetchRef.current = fetchFunction;
+  }, [fetchFunction]);
+
   const execute = useCallback(async () => {
+
     setLoading(true);
     setError(null);
 
     try {
-      const result = await fetcher();
-      setData(result);
-      return result;
+
+      const result = await fetchRef.current();
+
+      if (isMounted.current) {
+        setData(result);
+      }
+
     } catch (err) {
-      const errorMessage = err.message || "An error occurred";
-      setError(errorMessage);
-      throw err;
+
+      if (isMounted.current) {
+        setError(err);
+      }
+
     } finally {
-      setLoading(false);
+
+      if (isMounted.current) {
+        setLoading(false);
+      }
+
     }
-  }, [fetcher]);
+
+  }, []);
 
   useEffect(() => {
-    if (immediate !== false) {
+
+    isMounted.current = true;
+
+    if (immediate) {
       execute();
     }
+
+    return () => {
+      isMounted.current = false;
+    };
+
   }, [immediate, execute]);
 
   return {
     data,
     loading,
     error,
-    execute,
-    setData
+    execute
   };
+
 }

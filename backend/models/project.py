@@ -188,9 +188,7 @@ class Project(Base):
             "name": self.name,
             "subsidy_id": self.subsidy_id,
             "description": self.description,
-            # Include metadata as-is without parsing, since it's stored as a string and may
-            # not always be valid JSON. Calling code can parse it if needed for their use case.
-            "metadata": self.metadata,
+            "meta_data": self.meta_data,
             "owner": self.owner,
             # Convert datetime fields to ISO 8601 strings for consistent JSON representation
             # across different systems and programming languages. The isoformat() method is

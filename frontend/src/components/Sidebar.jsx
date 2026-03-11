@@ -1,54 +1,42 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 
-export default function Sidebar({
-  collapsed = false,
-  onToggle = () => {},
-  user = null
-}) {
-  const sidebarClass = `app-sidebar${collapsed ? " collapsed" : ""}`;
+export default function Sidebar() {
 
-  const navLinkClass = ({ isActive }) =>
+  const navClass = ({ isActive }) =>
     isActive ? "sidebar-link active" : "sidebar-link";
 
   return (
-    <aside className={sidebarClass}>
-      <div className="sidebar-header">
-        <div className="sidebar-title">PSTL</div>
-        <button type="button" onClick={onToggle}>
-          ☰
-        </button>
+    <aside className="sidebar">
+
+      <div className="sidebar-logo">
+        PSTL
       </div>
 
       <nav className="sidebar-nav">
-        <NavLink to="/dashboard" className={navLinkClass}>
+
+        <NavLink to="/dashboard" className={navClass}>
           Dashboard
         </NavLink>
 
-        <NavLink to="/projects" className={navLinkClass}>
+        <NavLink to="/projects" className={navClass}>
           Projects
         </NavLink>
 
-        <NavLink to="/subsidies" className={navLinkClass}>
+        <NavLink to="/subsidies" className={navClass}>
           Subsidies
         </NavLink>
 
-        <NavLink to="/disbursements" className={navLinkClass}>
+        <NavLink to="/disbursements" className={navClass}>
           Disbursements
         </NavLink>
 
-        <NavLink to="/audits" className={navLinkClass}>
+        <NavLink to="/audits" className={navClass}>
           Audits
         </NavLink>
+
       </nav>
 
-      <div className="sidebar-footer">
-        {user ? (
-          <span className="sidebar-user">{user.username}</span>
-        ) : (
-          <span className="sidebar-user">Guest</span>
-        )}
-      </div>
     </aside>
   );
 }

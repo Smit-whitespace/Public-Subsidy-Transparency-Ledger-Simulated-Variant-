@@ -87,7 +87,11 @@ class AuditRecord(Base):
         nullable=False,
         index=True
     )
-    
+    performed_by: Mapped[int | None] = mapped_column(
+    Integer,
+    nullable=True,
+    index=True,
+    )
     def to_dict(self) -> dict[str, Any]:
         """
         Convert this audit record to a plain Python dictionary for serialization.
@@ -109,3 +113,4 @@ class AuditRecord(Base):
             "details": self.details,
             "created_at": self.created_at,
         }
+    

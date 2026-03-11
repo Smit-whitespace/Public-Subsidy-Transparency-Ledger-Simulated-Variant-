@@ -40,7 +40,7 @@ __all__ = ["engine", "SessionLocal", "Base", "get_db", "init_db"]
 # can safely share connections across threads in most scenarios. We enable this only for
 # SQLite to avoid adding unnecessary kwargs for PostgreSQL, MySQL, etc.
 connect_args = {}
-if "sqlite" in settings.DATABASE_URL.lower():
+if "sqlite" in str(settings.DATABASE_URL).lower():
     connect_args["check_same_thread"] = False
     # TODO: Replace SQLite with PostgreSQL or another production database for deployment
 
@@ -49,7 +49,7 @@ if "sqlite" in settings.DATABASE_URL.lower():
 # be enabled during development to see SQL queries logged to the console, which is helpful
 # for debugging but should be disabled in production to avoid log noise.
 engine: Engine = create_engine(
-    settings.DATABASE_URL,
+    str(settings.DATABASE_URL),
     connect_args=connect_args,
     echo=False,  # Set to True during development if you want to see SQL queries
     pool_pre_ping=True,  # Verify connections are alive before using them from the pool

@@ -1,17 +1,13 @@
-"""
-backend/models/user.py
-
-Defines the User model for authentication and authorization.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime
+from typing import List
 
 from sqlalchemy import Boolean, DateTime, Integer, String, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.database.connection import Base
+from backend.models.user_role import UserRole
 
 
 class User(Base):
@@ -36,10 +32,16 @@ class User(Base):
         nullable=False,
     )
 
-    is_admin: Mapped[bool] = mapped_column(
+    is_active: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
-        default=False,
+        default=True,
+    )
+
+    roles: Mapped[List["Role"]] = relationship(
+        "Role",
+        secondary="user_roles",
+        back_populates="users",
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -47,11 +49,3 @@ class User(Base):
         server_default=func.now(),
         nullable=False,
     )
-
-    def to_dict(self) -> dict:
-        return {
-            "id": self.id,
-            "username": self.username,
-            "is_admin": self.is_admin,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-        }

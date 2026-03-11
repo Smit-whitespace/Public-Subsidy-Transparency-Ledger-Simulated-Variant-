@@ -15,7 +15,6 @@ class UserBase(BaseModel):
     Base schema containing shared fields for user payloads.
     """
     username: str = Field(..., min_length=1, max_length=150, description="Unique username")
-    is_admin: bool = Field(False, description="Admin flag")
 
 
 class UserCreate(UserBase):
@@ -55,7 +54,6 @@ class UserUpdate(BaseModel):
     """
     username: Optional[str] = Field(None, min_length=1, max_length=150, description="Unique username")
     password: Optional[str] = Field(None, min_length=6, max_length=256, description="Plain-text password (will be hashed before storing)")
-    is_admin: Optional[bool] = Field(None, description="Admin flag")
     
     @validator("username")
     def normalize_username(cls, v):
@@ -86,7 +84,6 @@ class UserRead(BaseModel):
     """
     id: int
     username: str
-    is_admin: bool
     created_at: datetime
     
     class Config:
@@ -97,7 +94,7 @@ class UserRead(BaseModel):
 class UserPublic(BaseModel):
     """
     Minimal public view of user for public-facing endpoints.
-    Never include is_admin, hashed_password, or other sensitive fields.
+    Never include  hashed_password, or other sensitive fields.
     """
     id: int
     username: str

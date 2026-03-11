@@ -14,10 +14,12 @@ export default function AuditTimeline({ audits = [], loading = false, error = nu
   }
 
   function formatTimestamp(timestamp) {
+    // Backend sends created_at, not timestamp
+    const ts = timestamp || timestamp?.created_at;
     try {
-      return new Date(timestamp).toLocaleString();
+      return new Date(ts).toLocaleString();
     } catch (_) {
-      return timestamp || "N/A";
+      return ts || "N/A";
     }
   }
 
@@ -37,7 +39,8 @@ export default function AuditTimeline({ audits = [], loading = false, error = nu
         const action = audit?.action || "unknown";
         const entity = audit?.entity || "unknown";
         const entityId = audit?.entity_id || "N/A";
-        const timestamp = audit?.timestamp;
+        // Backend field is created_at, not timestamp
+        const timestamp = audit?.created_at || audit?.timestamp;
         const actor = audit?.performed_by || "system";
         const details = audit?.details;
         const itemKey = audit?.id || index;
