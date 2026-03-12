@@ -1,14 +1,32 @@
 import React from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import {
+  LayoutDashboard,
+  FolderKanban,
+  Wallet,
+  ArrowRightLeft,
+  FileSearch,
+  Search,
+  Globe,
+  LogOut,
+  LogIn
+} from "lucide-react";
+
+const AUTH_NAV = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/projects", label: "Projects", icon: FolderKanban },
+  { to: "/subsidies", label: "Subsidies", icon: Wallet },
+  { to: "/disbursements", label: "Disbursements", icon: ArrowRightLeft },
+  { to: "/audits", label: "Audits", icon: FileSearch },
+  { to: "/investigation", label: "Investigation", icon: Search },
+];
 
 export default function Navbar() {
-
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // hide navbar on login page
   if (location.pathname === "/login") {
     return null;
   }
@@ -23,58 +41,43 @@ export default function Navbar() {
 
   return (
     <header className="topbar">
-
       <div className="topbar-left">
-
         <div className="logo">PSTL</div>
 
         {isAuthenticated && (
           <nav className="top-nav">
-
-            <NavLink to="/dashboard" className={navClass}>
-              Dashboard
-            </NavLink>
-
-            <NavLink to="/projects" className={navClass}>
-              Projects
-            </NavLink>
-
-            <NavLink to="/subsidies" className={navClass}>
-              Subsidies
-            </NavLink>
-
-            <NavLink to="/disbursements" className={navClass}>
-              Disbursements
-            </NavLink>
-
-            <NavLink to="/audits" className={navClass}>
-              Audits
-            </NavLink>
-
+            {AUTH_NAV.map(({ to, label, icon: Icon }) => (
+              <NavLink key={to} to={to} className={navClass}>
+                <Icon size={14} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                {label}
+              </NavLink>
+            ))}
           </nav>
         )}
-
       </div>
 
       <div className="topbar-right">
-
-        {isAuthenticated && (
+        {isAuthenticated ? (
           <>
-            <span className="user-name">
-              {user?.username}
-            </span>
-
-            <button
-              className="logout-btn"
-              onClick={handleLogout}
-            >
+            <span className="user-name">{user?.username}</span>
+            <button className="logout-btn" onClick={handleLogout}>
+              <LogOut size={14} style={{ marginRight: 4, verticalAlign: "middle" }} />
               Logout
             </button>
           </>
+        ) : (
+          <>
+            <NavLink to="/transparency" className={navClass}>
+              <Globe size={14} style={{ marginRight: 4, verticalAlign: "middle" }} />
+              Transparency Portal
+            </NavLink>
+            <NavLink to="/login" className="cta-primary" style={{ fontSize: "13px", padding: "7px 18px" }}>
+              <LogIn size={14} style={{ marginRight: 4, verticalAlign: "middle" }} />
+              Login
+            </NavLink>
+          </>
         )}
-
       </div>
-
     </header>
   );
 }

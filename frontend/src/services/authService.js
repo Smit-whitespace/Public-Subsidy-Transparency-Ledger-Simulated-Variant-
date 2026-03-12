@@ -55,3 +55,15 @@ export function logout() {
   setAuthToken(null);
 
 }
+
+export async function register(username, password, role = "auditor") {
+
+  const response = await apiClient.post("/auth/register", {
+    username,
+    password,
+    role
+  });
+
+  return response.data;
+
+}

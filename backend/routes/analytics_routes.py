@@ -132,3 +132,47 @@ def subsidy_anomalies(subsidy_id: int, db: Session = Depends(get_db)):
         "subsidy_id": subsidy_id,
         "anomalies": check_subsidy_anomalies(db, subsidy_id)
     }
+
+
+# ============================================================
+# FUND FLOW VISUALIZATION ENDPOINTS
+# ============================================================
+
+@router.get("/fund-flow/summary")
+def fund_flow_summary(db: Session = Depends(get_db)):
+    """Get overall fund flow summary across all subsidies."""
+    return get_fund_flow_summary(db)
+
+
+@router.get("/fund-flow/subsidy/{subsidy_id}")
+def fund_flow_subsidy(subsidy_id: int, db: Session = Depends(get_db)):
+    """Get detailed fund flow for a specific subsidy."""
+    result = get_subsidy_fund_flow(db, subsidy_id)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@router.get("/fund-flow/sectors")
+def fund_flow_sectors(db: Session = Depends(get_db)):
+    """Get fund flow breakdown by sector."""
+    return get_fund_flow_by_sector(db)
+
+
+@router.get("/fund-flow/timeline")
+def fund_flow_timeline(
+    subsidy_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """Get timeline of fund flow events."""
+    return get_fund_flow_timeline(db, subsidy_id)
+
+
+# ============================================================
+# FRAUD NETWORK DETECTION ENDPOINT
+# ============================================================
+
+@router.get("/fraud-network")
+def fraud_network(db: Session = Depends(get_db)):
+    """Get fraud network analysis identifying suspicious relationships."""
+    return get_fraud_network_analysis(db)

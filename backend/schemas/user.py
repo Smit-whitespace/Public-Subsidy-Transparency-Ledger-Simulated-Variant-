@@ -24,6 +24,7 @@ class UserCreate(UserBase):
     SECURITY: Raw password must never be returned in any response.
     """
     password: str = Field(..., min_length=6, max_length=256, description="Plain-text password (will be hashed before storing)")
+    role: Optional[str] = Field("auditor", description="Role to assign: public, media, auditor, government_official, admin")
     
     @validator("username")
     def normalize_username(cls, v):
@@ -85,10 +86,20 @@ class UserRead(BaseModel):
     id: int
     username: str
     created_at: datetime
+    roles: list = []
     
     class Config:
         orm_mode = True
         from_attributes = True
+    
+    @classmethod
+    def from_orm_with_roles(cls, user):
+        return cls(
+            id=user.id,
+            username=user.username,
+            created_at=user.created_at,
+            roles=[role.name for role in user.roles] if hasattr(user, 'roles') else []
+        )
 
 
 class UserPublic(BaseModel):

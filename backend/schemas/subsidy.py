@@ -24,8 +24,8 @@ class SubsidyBase(BaseModel):
 
     title: str = Field(..., max_length=255)
     recipient: str = Field(..., max_length=255)
+    sector: Optional[str] = Field(None, max_length=100)
 
-    # 🔥 FIXED: aligned with ORM model
     total_allocation: Decimal = Field(..., description="Total authorized allocation")
 
     currency: str = Field("INR", min_length=3, max_length=3)

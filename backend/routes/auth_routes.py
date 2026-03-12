@@ -14,6 +14,8 @@ from backend.models.user import User
 from backend.models.audit import AuditRecord
 from backend.schemas.auth import Token
 from backend.schemas.user import UserRead, UserCreate
+from backend.models.user_role import UserRole
+from backend.core.permissions import RoleNames
 from backend.services.auth_service import get_password_hash, verify_password
 from backend.utils.jwt import create_token, decode_token
 
@@ -78,6 +80,19 @@ def register_user(
             detail="Username conflict",
         )
 
+    # Validate role if provided
+    role_name = user_data.role or "auditor"
+    valid_roles = [RoleNames.PUBLIC, RoleNames.MEDIA, RoleNames.AUDITOR, RoleNames.GOVERNMENT_OFFICIAL, RoleNames.ADMIN]
+    if role_name not in valid_roles:
+        role_name = "auditor"  # Default fallback
+
+    # Get the role object
+    from backend.models.role import Role
+    role = db.query(Role).filter(Role.name == role_name).first()
+    if not role:
+        # Use auditor as fallback if role doesn't exist yet
+        role = db.query(Role).filter(Role.name == RoleNames.AUDITOR).first()
+    
     try:
         new_user = User(
             username=user_data.username,
@@ -88,16 +103,25 @@ def register_user(
         db.commit()
         db.refresh(new_user)
 
+        # Assign role to user
+        if role:
+            db.add(UserRole(user_id=new_user.id, role_id=role.id))
+
         # Audit registration
         db.add(
             AuditRecord(
                 entity="user",
                 entity_id=new_user.id,
                 action="register",
-                details=f"User {new_user.username} registered",
+                details=f"User {new_user.username} registered with role: {role_name}",
             )
         )
         db.commit()
+
+        # Load roles for response
+        from backend.models.role import Role
+        user_roles = db.query(Role).join(UserRole).filter(UserRole.user_id == new_user.id).all()
+        new_user.roles = user_roles
 
         return new_user
 
@@ -168,5 +192,10 @@ def login_user(
 @router.get("/me", response_model=UserRead)
 def get_current_user_profile(
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
+    # Load roles for response
+    from backend.models.role import Role
+    user_roles = db.query(Role).join(UserRole).filter(UserRole.user_id == current_user.id).all()
+    current_user.roles = user_roles
     return current_user

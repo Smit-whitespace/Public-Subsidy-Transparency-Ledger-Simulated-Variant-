@@ -8,6 +8,8 @@ import {
   loadAuth
 } from "../services/authService";
 
+import { setAuthToken } from "../services/apiClient";
+
 export default function useAuth() {
 
   const [user, setUser] = useState(null);
@@ -28,6 +30,8 @@ export default function useAuth() {
 
         if (savedToken) {
 
+          // Set token BEFORE making API calls
+          setAuthToken(savedToken);
           setToken(savedToken);
 
           try {
@@ -70,6 +74,11 @@ export default function useAuth() {
     initializeAuth();
 
   }, []);
+
+  // Set auth token on apiClient whenever token changes
+  useEffect(() => {
+    setAuthToken(token);
+  }, [token]);
 
   const login = useCallback(async (username, password) => {
 
@@ -124,6 +133,29 @@ export default function useAuth() {
 
   }, []);
 
+  // Helper to check if user has a specific role
+  const hasRole = useCallback((role) => {
+    if (!user || !user.roles) return false;
+    if (Array.isArray(role)) {
+      return role.some(r => user.roles.includes(r));
+    }
+    return user.roles.includes(role);
+  }, [user]);
+
+  // Helper to check if user has any of the required roles
+  const hasAnyRole = useCallback((roles) => {
+    return hasRole(roles);
+  }, [hasRole]);
+
+  // Helper to check if user is admin
+  const isAdmin = useCallback(() => hasRole('admin'), [hasRole]);
+
+  // Helper to check if user can access admin features
+  const canAccessAdmin = useCallback(() => hasRole(['admin', 'government_official']), [hasRole]);
+
+  // Helper to check if user can investigate
+  const canInvestigate = useCallback(() => hasRole(['admin', 'auditor', 'media']), [hasRole]);
+
   return {
 
     user,
@@ -133,6 +165,13 @@ export default function useAuth() {
     error,
 
     isAuthenticated: Boolean(token),
+    roles: user?.roles || [],
+
+    hasRole,
+    hasAnyRole,
+    isAdmin,
+    canAccessAdmin,
+    canInvestigate,
 
     login,
     logout

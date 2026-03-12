@@ -42,6 +42,47 @@ export default function SubsidyList() {
   const [creating, setCreating] = useState(false);
   const [deletingIds, setDeletingIds] = useState(new Set());
 
+  async function handleCreateSubsidy(e) {
+    e.preventDefault();
+    if (creating || !token) return;
+    setCreating(true);
+    try {
+      await createSubsidy(newSubsidy, token);
+      setShowCreateModal(false);
+      setNewSubsidy({
+        title: "",
+        recipient: "",
+        sector: "",
+        total_allocation: "",
+        description: "",
+        status: "active"
+      });
+      execute();
+    } catch (err) {
+      console.error("Failed to create subsidy:", err);
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleDeleteSubsidy(subsidyId, e) {
+    e.stopPropagation();
+    if (!token || deletingIds.has(subsidyId)) return;
+    setDeletingIds((prev) => new Set(prev).add(subsidyId));
+    try {
+      await deleteSubsidy(subsidyId, token);
+      execute();
+    } catch (err) {
+      console.error("Failed to delete subsidy:", err);
+    } finally {
+      setDeletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(subsidyId);
+        return next;
+      });
+    }
+  }
+
   const fetchSubsidyData = useCallback(() => {
 
     if (!token) {

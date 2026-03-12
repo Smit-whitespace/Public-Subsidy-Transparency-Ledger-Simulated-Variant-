@@ -21,6 +21,7 @@ from sqlalchemy import func
 from backend.models.subsidy import Subsidy
 from backend.models.disbursement import Disbursement
 from backend.models.risk_event import RiskEvent
+from backend.models.project import Project
 
 
 class AnomalyType:
@@ -32,6 +33,12 @@ class AnomalyType:
     CORRELATION_FLAG = "correlation_flag"
     RAPID_SUCCESSION = "rapid_succession"
     SUSPICIOUS_AMOUNT = "suspicious_amount"
+    CIRCULAR_FUND_FLOW = "circular_fund_flow"
+    SHELL_ENTITY = "shell_entity"
+    DUPLICATE_PAYMENT = "duplicate_payment"
+    HIGH_RISK_CLUSTER = "high_risk_cluster"
+    VELOCITY_ANOMALY = "velocity_anomaly"
+    SEASONAL_DEVIATION = "seasonal_deviation"
 
 
 class AnomalySeverity:
@@ -167,6 +174,30 @@ class AnomalyDetectionService:
             subsidy, disbursements
         )
         alerts.extend(over_disbursement_alerts)
+        
+        # 7. Shell entity detection
+        shell_alerts = self._detect_shell_entity(subsidy, disbursements)
+        alerts.extend(shell_alerts)
+        
+        # 8. Duplicate payment detection
+        duplicate_alerts = self._detect_duplicate_payment(subsidy, disbursements)
+        alerts.extend(duplicate_alerts)
+        
+        # 9. High-risk cluster detection
+        cluster_alerts = self._detect_high_risk_cluster(subsidy, disbursements)
+        alerts.extend(cluster_alerts)
+        
+        # 10. Velocity anomaly detection
+        velocity_alerts = self._detect_velocity_anomaly(subsidy, disbursements)
+        alerts.extend(velocity_alerts)
+        
+        # 11. Seasonal deviation detection
+        seasonal_alerts = self._detect_seasonal_deviation(subsidy, disbursements)
+        alerts.extend(seasonal_alerts)
+        
+        # 12. Circular fund flow detection
+        circular_alerts = self._detect_circular_fund_flow(subsidy, disbursements)
+        alerts.extend(circular_alerts)
         
         return alerts
     
@@ -487,6 +518,259 @@ class AnomalyDetectionService:
                 confidence=0.95
             )
             alerts.append(alert)
+        
+        return alerts
+    
+    def _detect_shell_entity(
+        self,
+        subsidy: Subsidy,
+        disbursements: List[Disbursement]
+    ) -> List[AnomalyAlert]:
+        """Detect potential shell entities with minimal activity but high funding"""
+        alerts = []
+        
+        total_allocation = float(subsidy.total_allocation or 0)
+        
+        if total_allocation < 1000000:  # Only check large subsidies
+            return alerts
+        
+        # Shell entity indicators: high allocation, few projects, missing audit trail
+        projects_count = self.db.query(Project).filter(
+            Project.subsidy_id == subsidy.id
+        ).count()
+        
+        if projects_count <= 1 and total_allocation > 5000000:
+            alert = AnomalyAlert(
+                anomaly_type=AnomalyType.SHELL_ENTITY,
+                severity=AnomalySeverity.HIGH,
+                message=f"Potential shell entity: High allocation ({total_allocation:,.0f}) with minimal projects",
+                subsidy_id=subsidy.id,
+                details={
+                    "total_allocation": total_allocation,
+                    "projects_count": projects_count,
+                    "recipient": subsidy.recipient
+                },
+                confidence=0.75
+            )
+            alerts.append(alert)
+        
+        return alerts
+    
+    def _detect_duplicate_payment(
+        self,
+        subsidy: Subsidy,
+        disbursements: List[Disbursement]
+    ) -> List[AnomalyAlert]:
+        """Detect duplicate payment patterns"""
+        alerts = []
+        
+        amount_map = {}
+        for d in disbursements:
+            amount_key = (str(d.amount), d.date.isoformat() if d.date else None)
+            if amount_key in amount_map:
+                alert = AnomalyAlert(
+                    anomaly_type=AnomalyType.DUPLICATE_PAYMENT,
+                    severity=AnomalySeverity.CRITICAL,
+                    message=f"Duplicate payment detected: {d.amount} on same date",
+                    subsidy_id=subsidy.id,
+                    details={
+                        "disbursement_ids": [amount_map[amount_key], d.id],
+                        "amount": str(d.amount),
+                        "date": str(d.date)
+                    },
+                    confidence=0.95
+                )
+                alerts.append(alert)
+            else:
+                amount_map[amount_key] = d.id
+        
+        return alerts
+    
+    def _detect_high_risk_cluster(
+        self,
+        subsidy: Subsidy,
+        disbursements: List[Disbursement]
+    ) -> List[AnomalyAlert]:
+        """Detect high-risk clusters within sectors"""
+        alerts = []
+        
+        if not subsidy.sector:
+            return alerts
+        
+        # Get all subsidies in same sector
+        sector_subsidies = self.db.query(Subsidy).filter(
+            Subsidy.sector == subsidy.sector,
+            Subsidy.id != subsidy.id
+        ).all()
+        
+        if len(sector_subsidies) < 3:
+            return alerts
+        
+        # Calculate sector risk average
+        risk_scores = [float(s.risk_score or 0) for s in sector_subsidies]
+        avg_risk = sum(risk_scores) / len(risk_scores) if risk_scores else 0
+        
+        current_risk = float(subsidy.risk_score or 0)
+        if current_risk > avg_risk * 1.5 and current_risk > 70:
+            alert = AnomalyAlert(
+                anomaly_type=AnomalyType.HIGH_RISK_CLUSTER,
+                severity=AnomalySeverity.HIGH,
+                message=f"High-risk cluster in {subsidy.sector} sector (avg: {avg_risk:.0f}, this: {current_risk:.0f})",
+                subsidy_id=subsidy.id,
+                details={
+                    "sector": subsidy.sector,
+                    "sector_avg_risk": avg_risk,
+                    "current_risk": current_risk,
+                    "sector_subsidy_count": len(sector_subsidies)
+                },
+                confidence=0.8
+            )
+            alerts.append(alert)
+        
+        return alerts
+    
+    def _detect_velocity_anomaly(
+        self,
+        subsidy: Subsidy,
+        disbursements: List[Disbursement]
+    ) -> List[AnomalyAlert]:
+        """Detect unusual payment velocity patterns"""
+        alerts = []
+        
+        if len(disbursements) < 3:
+            return alerts
+        
+        sorted_disb = sorted(disbursements, key=lambda d: d.date or datetime.min)
+        
+        # Check for concentration of payments in short time
+        if len(sorted_disb) >= 3:
+            first_date = sorted_disb[0].date
+            last_date = sorted_disb[-1].date
+            
+            if first_date and last_date:
+                total_days = (last_date - first_date).days
+                
+                # If more than 50% of disbursements happen in first 20% of time
+                if total_days > 30:
+                    cutoff_date = first_date + timedelta(days=int(total_days * 0.2))
+                    early_disb = [d for d in sorted_disb if d.date and d.date <= cutoff_date]
+                    
+                    if len(early_disb) >= len(sorted_disb) * 0.5:
+                        total_early = sum(float(d.amount) for d in early_disb)
+                        total_all = sum(float(d.amount) for d in sorted_disb)
+                        
+                        alert = AnomalyAlert(
+                            anomaly_type=AnomalyType.VELOCITY_ANOMALY,
+                            severity=AnomalySeverity.MEDIUM,
+                            message=f"Unusual payment velocity: {len(early_disb)}/{len(sorted_disb)} payments in first 20% of period",
+                            subsidy_id=subsidy.id,
+                            details={
+                                "early_payment_count": len(early_disb),
+                                "total_payment_count": len(sorted_disb),
+                                "early_amount_pct": round((total_early/total_all)*100, 1) if total_all > 0 else 0,
+                                "total_days": total_days
+                            },
+                            confidence=0.7
+                        )
+                        alerts.append(alert)
+        
+        return alerts
+    
+    def _detect_seasonal_deviation(
+        self,
+        subsidy: Subsidy,
+        disbursements: List[Disbursement]
+    ) -> List[AnomalyAlert]:
+        """Detect unusual seasonal patterns in disbursements"""
+        alerts = []
+        
+        if len(disbursements) < 5:
+            return alerts
+        
+        # Group by month
+        monthly_amounts = {}
+        for d in disbursements:
+            if d.date:
+                month_key = d.date.month
+                if month_key not in monthly_amounts:
+                    monthly_amounts[month_key] = []
+                monthly_amounts[month_key].append(float(d.amount))
+        
+        if not monthly_amounts:
+            return alerts
+        
+        # Calculate average for each month
+        monthly_avg = {
+            m: sum(amounts) / len(amounts) 
+            for m, amounts in monthly_amounts.items()
+        }
+        
+        overall_avg = sum(monthly_avg.values()) / len(monthly_avg)
+        
+        # Find months with significantly higher/lower amounts
+        for month, avg in monthly_avg.items():
+            if overall_avg > 0 and abs(avg - overall_avg) / overall_avg > 0.5:
+                month_name = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month]
+                direction = "above" if avg > overall_avg else "below"
+                
+                alert = AnomalyAlert(
+                    anomaly_type=AnomalyType.SEASONAL_DEVIATION,
+                    severity=AnomalySeverity.LOW,
+                    message=f"Seasonal deviation: {month_name} average {direction} normal ({abs(avg-overall_avg)/overall_avg*100:.0f}%)",
+                    subsidy_id=subsidy.id,
+                    details={
+                        "month": month_name,
+                        "monthly_avg": avg,
+                        "overall_avg": overall_avg,
+                        "deviation_pct": round(abs(avg-overall_avg)/overall_avg*100, 1)
+                    },
+                    confidence=0.5
+                )
+                alerts.append(alert)
+        
+        return alerts
+    
+    def _detect_circular_fund_flow(
+        self,
+        subsidy: Subsidy,
+        disbursements: List[Disbursement]
+    ) -> List[AnomalyAlert]:
+        """Detect suspicious circular fund flow patterns between entities"""
+        alerts = []
+        
+        # Check if recipient appears as contractor in other subsidies
+        recipient = subsidy.recipient
+        if not recipient:
+            return alerts
+        
+        # Look for the recipient in projects where they might be contractors
+        # This requires checking across subsidies
+        all_projects = self.db.query(Project).filter(
+            Project.contractor_name.ilike(f"%{recipient}%")
+        ).all()
+        
+        if len(all_projects) >= 3:
+            # Get unique subsidies funding these projects
+            linked_subsidy_ids = list(set(p.subsidy_id for p in all_projects))
+            
+            if len(linked_subsidy_ids) >= 2:
+                total_linked = sum(float(p.budget or 0) for p in all_projects)
+                
+                alert = AnomalyAlert(
+                    anomaly_type=AnomalyType.CIRCULAR_FUND_FLOW,
+                    severity=AnomalySeverity.CRITICAL,
+                    message=f"Potential circular flow: {recipient} linked to {len(linked_subsidy_ids)} subsidies as contractor",
+                    subsidy_id=subsidy.id,
+                    details={
+                        "recipient": recipient,
+                        "linked_subsidy_count": len(linked_subsidy_ids),
+                        "linked_projects": len(all_projects),
+                        "total_linked_budget": total_linked
+                    },
+                    confidence=0.85
+                )
+                alerts.append(alert)
         
         return alerts
     

@@ -75,7 +75,8 @@ def seed():
         subsidies = []
 
         # Create subsidies with scenarios
-        for i in range(35):
+        # Target: 200+ subsidies for realistic demo data
+        for i in range(200):
             subsidy = create_subsidy(i)
             db.add(subsidy)
             db.flush()

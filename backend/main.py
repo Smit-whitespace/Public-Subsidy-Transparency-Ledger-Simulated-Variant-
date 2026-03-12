@@ -30,6 +30,7 @@ from backend.routes.search_routes import router as search_router
 from backend.routes.analytics_routes import router as analytics_router
 from backend.routes.admin_routes import router as admin_router
 from backend.routes.risk_event_routes import router as risk_event_router
+from backend.routes.public_routes import router as public_router
 
 logger = get_logger(__name__)
 
@@ -105,6 +106,7 @@ def create_app() -> FastAPI:
     # Public routes
     app.include_router(health_router, prefix="/health")
     app.include_router(auth_router, prefix="/auth")
+    app.include_router(public_router)
 
     # Protected routes (require authentication)
     auth_dependency = [Depends(get_current_user)]
@@ -161,6 +163,17 @@ def create_app() -> FastAPI:
                 logger.info("Default roles seeded")
             finally:
                 db.close()
+
+            # Auto-seed demo data if database is empty (for demonstrations)
+            try:
+                from backend.demo.demo_mode import ensure_demo_data
+                demo_result = ensure_demo_data()
+                if demo_result.get("seeded"):
+                    logger.info(f"Demo data seeded: {demo_result.get('stats')}")
+                else:
+                    logger.info("Demo data check: " + demo_result.get("message", "already present"))
+            except Exception as e:
+                logger.warning(f"Demo data seeding skipped: {e}")
 
         except Exception as e:
             logger.error(f"Database initialization failed: {e}")
