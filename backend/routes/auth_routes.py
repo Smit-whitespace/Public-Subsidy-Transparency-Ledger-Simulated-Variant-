@@ -10,14 +10,18 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from backend.database.connection import get_db
-from backend.models.user import User
+from backend.models.user import User as UserModel
 from backend.models.audit import AuditRecord
+from backend.models.role import Role
+from backend.models.user_role import UserRole
+
 from backend.schemas.auth import Token
 from backend.schemas.user import UserRead, UserCreate
-from backend.models.user_role import UserRole
+
 from backend.core.permissions import RoleNames
 from backend.services.auth_service import get_password_hash, verify_password
 from backend.utils.jwt import create_token, decode_token
+
 
 router = APIRouter(tags=["authentication"])
 
@@ -31,7 +35,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
-) -> User:
+) -> UserModel:
 
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -49,7 +53,7 @@ def get_current_user(
     except Exception:
         raise credentials_exception
 
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
 
     if user is None:
         raise credentials_exception
@@ -67,34 +71,39 @@ def register_user(
     db: Session = Depends(get_db),
 ):
 
-    # Explicit uniqueness check
     existing_user = (
-        db.query(User)
-        .filter(User.username == user_data.username)
+        db.query(UserModel)
+        .filter(UserModel.username == user_data.username)
         .first()
     )
 
-    if existing_user is not None:
+    if existing_user:
         raise HTTPException(
             status_code=400,
-            detail="Username conflict",
+            detail="Username already exists",
         )
 
-    # Validate role if provided
-    role_name = user_data.role or "auditor"
-    valid_roles = [RoleNames.PUBLIC, RoleNames.MEDIA, RoleNames.AUDITOR, RoleNames.GOVERNMENT_OFFICIAL, RoleNames.ADMIN]
-    if role_name not in valid_roles:
-        role_name = "auditor"  # Default fallback
+    role_name = user_data.role or RoleNames.AUDITOR
 
-    # Get the role object
-    from backend.models.role import Role
+    valid_roles = [
+        RoleNames.PUBLIC,
+        RoleNames.MEDIA,
+        RoleNames.AUDITOR,
+        RoleNames.GOVERNMENT_OFFICIAL,
+        RoleNames.ADMIN,
+    ]
+
+    if role_name not in valid_roles:
+        role_name = RoleNames.AUDITOR
+
     role = db.query(Role).filter(Role.name == role_name).first()
+
     if not role:
-        # Use auditor as fallback if role doesn't exist yet
         role = db.query(Role).filter(Role.name == RoleNames.AUDITOR).first()
-    
+
     try:
-        new_user = User(
+
+        new_user = UserModel(
             username=user_data.username,
             hashed_password=get_password_hash(user_data.password),
         )
@@ -103,11 +112,9 @@ def register_user(
         db.commit()
         db.refresh(new_user)
 
-        # Assign role to user
         if role:
             db.add(UserRole(user_id=new_user.id, role_id=role.id))
 
-        # Audit registration
         db.add(
             AuditRecord(
                 entity="user",
@@ -116,17 +123,29 @@ def register_user(
                 details=f"User {new_user.username} registered with role: {role_name}",
             )
         )
+
         db.commit()
 
-        # Load roles for response
-        from backend.models.role import Role
-        user_roles = db.query(Role).join(UserRole).filter(UserRole.user_id == new_user.id).all()
-        new_user.roles = user_roles
+        roles = (
+            db.query(Role)
+            .join(UserRole, Role.id == UserRole.role_id)
+            .filter(UserRole.user_id == new_user.id)
+            .all()
+        )
 
-        return new_user
+        role_names = [r.name for r in roles]
+
+        return {
+            "id": new_user.id,
+            "username": new_user.username,
+            "created_at": new_user.created_at,
+            "roles": role_names,
+        }
 
     except SQLAlchemyError:
+
         db.rollback()
+
         raise HTTPException(
             status_code=500,
             detail="Database error during registration",
@@ -144,8 +163,8 @@ def login_user(
 ):
 
     user = (
-        db.query(User)
-        .filter(User.username == form_data.username)
+        db.query(UserModel)
+        .filter(UserModel.username == form_data.username)
         .first()
     )
 
@@ -168,7 +187,6 @@ def login_user(
 
     access_token = create_token(token_payload)
 
-    # Audit login
     db.add(
         AuditRecord(
             entity="user",
@@ -177,6 +195,7 @@ def login_user(
             details=f"User {user.username} logged in",
         )
     )
+
     db.commit()
 
     return {
@@ -191,11 +210,22 @@ def login_user(
 
 @router.get("/me", response_model=UserRead)
 def get_current_user_profile(
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Load roles for response
-    from backend.models.role import Role
-    user_roles = db.query(Role).join(UserRole).filter(UserRole.user_id == current_user.id).all()
-    current_user.roles = user_roles
-    return current_user
+
+    roles = (
+        db.query(Role)
+        .join(UserRole, Role.id == UserRole.role_id)
+        .filter(UserRole.user_id == current_user.id)
+        .all()
+    )
+
+    role_names = [r.name for r in roles]
+
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "created_at": current_user.created_at,
+        "roles": role_names,
+    }

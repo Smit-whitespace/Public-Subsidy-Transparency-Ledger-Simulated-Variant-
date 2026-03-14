@@ -29,7 +29,7 @@ from sqlalchemy.orm import Session
 from backend.database.connection import get_db
 from backend.models.project import Project as ProjectModel
 from backend.schemas.project import Project, ProjectCreate, ProjectUpdate
-
+from backend.core.permission_guard import require_roles
 
 router = APIRouter( tags=["projects"])
 
@@ -178,6 +178,7 @@ def get_project(
 def create_project(
     project_data: ProjectCreate,
     db: Session = Depends(get_db),
+    user=Depends(require_roles("admin")),
 ) -> ProjectModel:
     """
     Create a new project record in the system.
@@ -255,6 +256,7 @@ def update_project(
     project_id: int,
     project_update: ProjectUpdate,
     db: Session = Depends(get_db),
+    user=Depends(require_roles("admin")),
 ) -> ProjectModel:
     """
     Partially update an existing project record.
@@ -342,6 +344,7 @@ def update_project(
 def delete_project(
     project_id: int,
     db: Session = Depends(get_db),
+    user=Depends(require_roles("admin")),
 ) -> Response:
     """
     Delete a project record from the system.

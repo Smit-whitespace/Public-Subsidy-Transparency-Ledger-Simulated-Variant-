@@ -33,6 +33,10 @@ const Investigation = React.lazy(() => import("./pages/Investigation"));
 const AdminCreateSubsidy = React.lazy(() => import("./pages/AdminCreateSubsidy"));
 const AdminCreateProject = React.lazy(() => import("./pages/AdminCreateProject"));
 const AdminCreateDisbursement = React.lazy(() => import("./pages/AdminCreateDisbursement"));
+const EditSubsidy = React.lazy(() => import("./pages/EditSubsidy"));
+const EditProject = React.lazy(() => import("./pages/EditProject"));
+const EditDisbursement = React.lazy(() => import("./pages/EditDisbursement"));
+const EditRiskEvent = React.lazy(() => import("./pages/EditRiskEvent"));
 
 /* ---------- ROUTE GUARD ---------- */
 
@@ -208,6 +212,50 @@ export default function App() {
           <RoleRoute requiredRoles={["admin", "government_official"]}>
             <Suspense fallback={<Loader message="Loading..." />}>
               <AdminCreateDisbursement />
+            </Suspense>
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path="/admin/edit-subsidy/:id"
+        element={
+          <RoleRoute requiredRoles={["admin", "government_official"]}>
+            <Suspense fallback={<Loader message="Loading..." />}>
+              <EditSubsidy />
+            </Suspense>
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path="/admin/edit-project/:id"
+        element={
+          <RoleRoute requiredRoles={["admin", "government_official"]}>
+            <Suspense fallback={<Loader message="Loading..." />}>
+              <EditProject />
+            </Suspense>
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path="/admin/edit-disbursement/:id"
+        element={
+          <RoleRoute requiredRoles={["admin", "government_official"]}>
+            <Suspense fallback={<Loader message="Loading..." />}>
+              <EditDisbursement />
+            </Suspense>
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path="/admin/edit-risk-event/:id"
+        element={
+          <RoleRoute requiredRoles={["admin"]}>
+            <Suspense fallback={<Loader message="Loading..." />}>
+              <EditRiskEvent />
             </Suspense>
           </RoleRoute>
         }

@@ -10,7 +10,9 @@ const apiClient = axios.create({
   }
 });
 
-/* ---------- AUTH TOKEN HANDLER ---------- */
+/* -----------------------------
+   AUTH TOKEN HANDLER
+------------------------------ */
 
 export function setAuthToken(token) {
 
@@ -22,6 +24,39 @@ export function setAuthToken(token) {
 
 }
 
-/* ---------- EXPORT CLIENT ---------- */
+/* -----------------------------
+   LOAD TOKEN ON APP START
+------------------------------ */
+
+const storedToken =
+  localStorage.getItem("pstl_token") ||
+  localStorage.getItem("access_token");
+
+if (storedToken) {
+  setAuthToken(storedToken);
+}
+
+/* -----------------------------
+   RESPONSE INTERCEPTOR
+------------------------------ */
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+
+    if (error.response && error.response.status === 401) {
+
+      console.warn("Authentication expired. Logging out.");
+
+      localStorage.removeItem("pstl_token");
+      localStorage.removeItem("pstl_user");
+
+      window.location.href = "/login";
+
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export default apiClient;

@@ -16,7 +16,8 @@ import useDebounce from "../hooks/useDebounce";
 export default function ProjectList() {
 
   const navigate = useNavigate();
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, user } = useAuth();
+  const isAdmin = user?.role === "admin";
 
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState({});
@@ -141,11 +142,22 @@ useEffect(() => {
               <div className="projects-grid">
 
                 {projects.map((project, index) => (
-                  <ProjectCard
-                    key={project.id || index}
-                    project={project}
-                    onClick={handleProjectClick}
-                  />
+                  <div key={project.id || index} style={{ position: "relative" }}>
+                    <ProjectCard
+                      project={project}
+                      onClick={handleProjectClick}
+                    />
+                    {isAdmin && (
+                      <div className="card-actions" style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+                        <button
+                          className="btn-secondary"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/admin/edit-project/${project.id}`); }}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 ))}
 
               </div>

@@ -7,7 +7,8 @@ Provides a typed Settings class and a ready-to-import settings instance.
 
 from __future__ import annotations
 from typing import Optional, Dict, Any
-from pydantic import BaseSettings, Field, validator, AnyUrl
+from pydantic import Field, validator, AnyUrl
+from pydantic_settings import BaseSettings
 import os
 
 
@@ -30,6 +31,12 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = Field(
         "development",
         description="Runtime environment, e.g., development|staging|production"
+    )
+    
+    # Demo Mode Control
+    DEMO_MODE: bool = Field(
+        True,
+        description="Enable demo mode with seed data (default: True for development)"
     )
 
     # =========================================================
@@ -123,6 +130,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         case_sensitive = True
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
     # =========================================================
     # Validators

@@ -59,6 +59,13 @@ class FraudNetworkDetector:
             payment_cluster_analysis
         )
         
+        # Build comprehensive graph data for visualization
+        graph_data = self._build_graph_data(
+            recipient_analysis,
+            owner_analysis,
+            payment_cluster_analysis
+        )
+        
         return {
             "network_risk_score": risk_score,
             "recipient_patterns": recipient_analysis,
@@ -68,8 +75,69 @@ class FraudNetworkDetector:
                 recipient_analysis,
                 owner_analysis,
                 payment_cluster_analysis
-            )
+            ),
+            "graph": graph_data
         }
+    
+    def _build_graph_data(self, recipient_analysis, owner_analysis, payment_clusters) -> Dict[str, Any]:
+        nodes = []
+        links = []
+        node_ids = set()
+        
+        def add_node(n_id, name, n_type, risk):
+            if n_id not in node_ids:
+                nodes.append({"id": n_id, "name": name, "type": n_type, "risk": risk})
+                node_ids.add(n_id)
+                
+        def add_link(src, tgt, l_type):
+            links.append({"source": src, "target": tgt, "type": l_type})
+            
+        # 1. Add flagged recipients, their subsidies, projects, and disbursements
+        for recipient, data in recipient_analysis.get("flagged_recipients", {}).items():
+            r_id = f"recipient_{recipient}"
+            r_risk = 90 if data["risk_level"] == "critical" else 75 if data["risk_level"] == "high" else 50
+            add_node(r_id, recipient, "recipient", r_risk)
+            
+            for sub in data["subsidies"]:
+                s_id = f"subsidy_{sub['id']}"
+                add_node(s_id, sub["title"], "subsidy", 60)
+                add_link(r_id, s_id, "receives")
+                
+                # Fetch projects for this subsidy
+                projects = self.db.query(Project).filter(Project.subsidy_id == sub["id"]).all()
+                for p in projects:
+                    p_id = f"project_{p.id}"
+                    add_node(p_id, p.name, "project", 40)
+                    add_link(s_id, p_id, "funds")
+                
+                # Fetch disbursements for this subsidy
+                disbursements = self.db.query(Disbursement).filter(Disbursement.subsidy_id == sub["id"]).all()
+                for d in disbursements:
+                    d_id = f"disbursement_{d.id}"
+                    # Add node for disbursement
+                    add_node(d_id, f"Payment: {float(d.amount)}", "disbursement", 50)
+                    # NOTE: Disbursements are technically linked to subsidies in the DB.
+                    # We link subsidy -> disbursement.
+                    add_link(s_id, d_id, "disburses")
+                    
+        # 2. Add flagged owners and their projects
+        for owner, data in owner_analysis.get("flagged_owners", {}).items():
+            o_id = f"owner_{owner}"
+            o_risk = 90 if data["risk_level"] == "critical" else 75 if data["risk_level"] == "high" else 50
+            add_node(o_id, owner, "owner", o_risk)
+            
+            for p in data["projects"]:
+                p_id = f"project_{p['id']}"
+                if p_id in node_ids:
+                    add_link(o_id, p_id, "owns")
+                else:
+                    add_node(p_id, p["name"], "project", 50)
+                    add_link(o_id, p_id, "owns")
+                    if p["subsidy_id"]:
+                        s_id = f"subsidy_{p['subsidy_id']}"
+                        add_link(s_id, p_id, "funds")
+        
+        return {"nodes": nodes, "links": links}
     
     def _analyze_recipient_patterns(self) -> Dict[str, Any]:
         """

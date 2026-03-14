@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
@@ -14,7 +15,9 @@ import useDebounce from "../hooks/useDebounce";
 
 export default function DisbursementTracker() {
 
-  const { token, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const { token, isAuthenticated, user } = useAuth();
+  const isAdmin = user?.role === "admin";
 
   const [filters, setFilters] = useState({});
   const [debouncedFilters, setDebouncedFilters] = useState({});
@@ -118,8 +121,21 @@ export default function DisbursementTracker() {
     {
       key: "status",
       label: "Status",
-      render: (row) => row.status || "N/A"
-    }
+      render: (row) => row.approval_status || row.status || "N/A"
+    },
+    ...(isAdmin ? [{
+      key: "actions",
+      label: "Actions",
+      render: (row) => (
+        <button
+          className="btn-secondary"
+          style={{ padding: "0.25rem 0.75rem", fontSize: "0.8rem" }}
+          onClick={(e) => { e.stopPropagation(); navigate(`/admin/edit-disbursement/${row.id}`); }}
+        >
+          Edit
+        </button>
+      )
+    }] : [])
   ];
 
   function handleFilterChange(updatedFilters) {

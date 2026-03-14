@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import apiClient from "../services/apiClient";
 
 const DemoModeContext = createContext(null);
 
@@ -40,13 +41,71 @@ const DEMO_INSIGHTS = {
 
 export function DemoModeProvider({ children }) {
   const [demoMode, setDemoMode] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const toggleDemo = useCallback(() => {
-    setDemoMode(prev => !prev);
+  // Fetch demo mode status from backend on mount
+  useEffect(() => {
+    async function checkDemoMode() {
+      try {
+        const response = await apiClient.get("/demo/status");
+        if (response.data) {
+          setDemoMode(response.data.demo_mode || false);
+        }
+      } catch (err) {
+        console.log("Could not fetch demo mode status");
+      } finally {
+        setLoading(false);
+      }
+    }
+    checkDemoMode();
+  }, []);
+
+  const toggleDemo = useCallback(async () => {
+    try {
+      const response = await apiClient.post("/demo/toggle");
+      setDemoMode(response.data.demo_mode);
+      // Optionally reload page to reflect data changes
+      if (response.data.demo_mode) {
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error("Failed to toggle demo mode:", err);
+    }
+  }, []);
+
+  const seedData = useCallback(async () => {
+    try {
+      const response = await apiClient.post("/demo/seed");
+      if (response.data.seeded) {
+        window.location.reload();
+      }
+      return response.data;
+    } catch (err) {
+      console.error("Failed to seed data:", err);
+      throw err;
+    }
+  }, []);
+
+  const clearData = useCallback(async () => {
+    try {
+      const response = await apiClient.post("/demo/clear");
+      window.location.reload();
+      return response.data;
+    } catch (err) {
+      console.error("Failed to clear data:", err);
+      throw err;
+    }
   }, []);
 
   return (
-    <DemoModeContext.Provider value={{ demoMode, toggleDemo, demoInsights: DEMO_INSIGHTS }}>
+    <DemoModeContext.Provider value={{ 
+      demoMode, 
+      toggleDemo, 
+      seedData, 
+      clearData,
+      loading,
+      demoInsights: DEMO_INSIGHTS 
+    }}>
       {children}
     </DemoModeContext.Provider>
   );
@@ -55,7 +114,7 @@ export function DemoModeProvider({ children }) {
 export function useDemoMode() {
   const context = useContext(DemoModeContext);
   if (!context) {
-    return { demoMode: false, toggleDemo: () => {}, demoInsights: DEMO_INSIGHTS };
+    return { demoMode: false, toggleDemo: () => {}, seedData: () => {}, clearData: () => {}, loading: false, demoInsights: DEMO_INSIGHTS };
   }
   return context;
 }

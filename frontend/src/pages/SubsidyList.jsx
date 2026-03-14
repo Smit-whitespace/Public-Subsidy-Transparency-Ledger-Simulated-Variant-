@@ -264,13 +264,22 @@ useEffect(() => {
                   <div key={subsidy.id || index} className="subsidy-card-wrapper">
                     <SubsidyCard subsidy={subsidy} onClick={() => navigate(`/subsidies/${subsidy.id}`)} />
                     {isAdmin && (
-                      <button
-                        className="btn-delete"
-                        onClick={(e) => handleDeleteSubsidy(subsidy.id, e)}
-                        disabled={deletingIds.has(subsidy.id)}
-                      >
-                        {deletingIds.has(subsidy.id) ? "Deleting..." : "Delete"}
-                      </button>
+                      <div className="card-actions">
+                        <button
+                          className="btn-secondary"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/admin/edit-subsidy/${subsidy.id}`); }}
+                          style={{ marginRight: "0.5rem" }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn-delete"
+                          onClick={(e) => handleDeleteSubsidy(subsidy.id, e)}
+                          disabled={deletingIds.has(subsidy.id)}
+                        >
+                          {deletingIds.has(subsidy.id) ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}

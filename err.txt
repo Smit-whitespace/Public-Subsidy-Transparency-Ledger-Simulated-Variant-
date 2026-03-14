@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "C:\Users\Smit\Desktop\P_Series\S_8\public-subsidy-transparency-ledger\catch_err.py", line 4, in <module>
+    from backend.main import app
+  File "C:\Users\Smit\Desktop\P_Series\S_8\public-subsidy-transparency-ledger\backend\main.py", line 14, in <module>
+    from backend.config import settings
+  File "C:\Users\Smit\Desktop\P_Series\S_8\public-subsidy-transparency-ledger\backend\config.py", line 10, in <module>
+    from pydantic import BaseSettings, Field, validator, AnyUrl
+  File "C:\Users\Smit\AppData\Roaming\Python\Python313\site-packages\pydantic\__init__.py", line 437, in __getattr__
+    return _getattr_migration(attr_name)
+  File "C:\Users\Smit\AppData\Roaming\Python\Python313\site-packages\pydantic\_migration.py", line 304, in wrapper
+    raise PydanticImportError(
+    ...<3 lines>...
+    )
+pydantic.errors.PydanticImportError: `BaseSettings` has been moved to the `pydantic-settings` package. See https://docs.pydantic.dev/2.12/migration/#basesettings-has-moved-to-pydantic-settings for more details.
+
+For further information visit https://errors.pydantic.dev/2.12/u/import-error

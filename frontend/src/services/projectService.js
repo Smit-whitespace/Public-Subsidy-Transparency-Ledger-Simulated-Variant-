@@ -28,3 +28,24 @@ export async function fetchProjectById(projectId, token) {
 
   return response.data;
 }
+
+export async function updateProject(projectId, projectData, token) {
+  const response = await apiClient.patch(`/projects/${projectId}`, projectData, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  return response.data;
+}
+
+export async function deleteProject(projectId, token) {
+  const response = await apiClient.delete(`/projects/${projectId}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  return response.data;
+}
+
+export async function createProject(projectData, token) {
+  const response = await apiClient.post("/projects/", projectData, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  return response.data;
+}

@@ -31,6 +31,7 @@ from backend.routes.analytics_routes import router as analytics_router
 from backend.routes.admin_routes import router as admin_router
 from backend.routes.risk_event_routes import router as risk_event_router
 from backend.routes.public_routes import router as public_router
+from backend.routes.demo_routes import router as demo_router
 
 logger = get_logger(__name__)
 
@@ -73,7 +74,10 @@ def create_app() -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=allowed_origins,
+        allow_origins=[
+            "http://localhost:5173",
+            "http://127.0.0.1:5173"
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"]
@@ -107,6 +111,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix="/health")
     app.include_router(auth_router, prefix="/auth")
     app.include_router(public_router)
+    app.include_router(demo_router)  # Demo mode control (no auth required)
 
     # Protected routes (require authentication)
     auth_dependency = [Depends(get_current_user)]
@@ -164,16 +169,19 @@ def create_app() -> FastAPI:
             finally:
                 db.close()
 
-            # Auto-seed demo data if database is empty (for demonstrations)
-            try:
-                from backend.demo.demo_mode import ensure_demo_data
-                demo_result = ensure_demo_data()
-                if demo_result.get("seeded"):
-                    logger.info(f"Demo data seeded: {demo_result.get('stats')}")
-                else:
-                    logger.info("Demo data check: " + demo_result.get("message", "already present"))
-            except Exception as e:
-                logger.warning(f"Demo data seeding skipped: {e}")
+            # Demo mode control - only seed if DEMO_MODE is enabled
+            if settings.DEMO_MODE:
+                try:
+                    from backend.demo.demo_mode import ensure_demo_data
+                    demo_result = ensure_demo_data()
+                    if demo_result.get("seeded"):
+                        logger.info(f"Demo data seeded: {demo_result.get('stats')}")
+                    else:
+                        logger.info("Demo data check: " + demo_result.get("message", "already present"))
+                except Exception as e:
+                    logger.warning(f"Demo data seeding skipped: {e}")
+            else:
+                logger.info("Demo mode OFF - database empty as expected")
 
         except Exception as e:
             logger.error(f"Database initialization failed: {e}")

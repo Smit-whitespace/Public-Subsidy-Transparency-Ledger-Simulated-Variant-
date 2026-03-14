@@ -27,3 +27,31 @@ export async function fetchDisbursements({
 
   return response.data;
 }
+
+export async function createDisbursement(disbursementData, token) {
+  const response = await apiClient.post("/disbursements/", disbursementData, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  return response.data;
+}
+
+export async function updateDisbursement(disbursementId, data, token) {
+  const response = await apiClient.patch(`/disbursements/${disbursementId}`, data, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  return response.data;
+}
+
+export async function deleteDisbursement(disbursementId, token) {
+  const response = await apiClient.delete(`/disbursements/${disbursementId}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  return response.data;
+}
+
+export async function fetchDisbursementById(disbursementId, token) {
+  const response = await apiClient.get(`/disbursements/${disbursementId}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  return response.data;
+}
