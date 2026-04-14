@@ -33,7 +33,7 @@ except ImportError:
         amount: Decimal
         currency: Optional[str] = "INR"
         description: Optional[str] = None
-        metadata: Optional[str] = None
+        meta_data: Optional[str] = None
         start_date: Optional[datetime] = None
         end_date: Optional[datetime] = None
         is_active: bool = True
@@ -51,7 +51,7 @@ except ImportError:
         amount: float | Decimal | str
         currency: Optional[str] = "INR"
         description: Optional[str] = None
-        metadata: Optional[str] = None
+        meta_data: Optional[str] = None
         start_date: Optional[datetime] = None
         end_date: Optional[datetime] = None
     
@@ -61,7 +61,7 @@ except ImportError:
         amount: Optional[float | Decimal | str] = None
         currency: Optional[str] = None
         description: Optional[str] = None
-        metadata: Optional[str] = None
+        meta_data: Optional[str] = None
         start_date: Optional[datetime] = None
         end_date: Optional[datetime] = None
         is_active: Optional[bool] = None

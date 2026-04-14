@@ -194,7 +194,7 @@ def test_update_subsidy_amount_and_metadata(db_session) -> None:
     # Assert updates were applied
     assert updated.id == s.id
     assert updated.amount == Decimal("2500.75")
-    assert updated.metadata == '{"updated":true}'
+    assert updated.meta_data == '{"updated":true}'
     
     # Verify persistence
     fetched = get_subsidy_by_id(db_session, s.id)

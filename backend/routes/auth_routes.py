@@ -22,13 +22,13 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import IntegrityError , SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from backend.database.connection import get_db
 from backend.models.user import User as UserModel
 from backend.schemas.auth import Token
-from backend.schemas.user import User, UserCreate
+from backend.schemas.user import UserRead, UserCreate
 from backend.services.auth_service import get_password_hash, verify_password
 from backend.utils.jwt import create_token, decode_token
 
@@ -108,7 +108,7 @@ def get_current_user(
     return user
 
 
-@router.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 def register_user(
     user_data: UserCreate,
     db: Session = Depends(get_db),
@@ -286,7 +286,7 @@ def login_user(
         )
 
 
-@router.get("/me", response_model=User)
+@router.get("/me", response_model=UserRead)
 def get_current_user_profile(
     current_user: UserModel = Depends(get_current_user),
 ) -> UserModel:
