@@ -1,103 +1,107 @@
-"""
-backend/models/subsidy.py
-"""
+from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Optional
+import enum
 
-from sqlalchemy import Boolean, DateTime, Index, Integer, Numeric, String, Text, func
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Enum,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.database.connection import Base
 
 
-__all__ = ["Subsidy"]
+class SubsidyStatus(str, enum.Enum):
+    planned = "planned"
+    active = "active"
+    completed = "completed"
+    expired = "expired"
+    suspended = "suspended"
 
 
 class Subsidy(Base):
     __tablename__ = "subsidies"
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True, index=True
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+
+    title: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+
+    recipient: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+
+    sector: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+
+    total_allocation: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="INR")
+
+    description: Mapped[Optional[str]] = mapped_column(Text)
+
+    meta_data: Mapped[Optional[str]] = mapped_column(Text)
+
+    status: Mapped[SubsidyStatus] = mapped_column(
+        Enum(SubsidyStatus),
+        default=SubsidyStatus.planned,
+        nullable=False,
+        index=True,
     )
 
-    title: Mapped[str] = mapped_column(
-        String(255), nullable=False, index=True
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    is_flagged: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+    risk_score: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), default=Decimal("0.00"), nullable=False
     )
 
-    recipient: Mapped[str] = mapped_column(
-        String(255), nullable=False, index=True
+    transparency_score: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), default=Decimal("100.00"), nullable=False
     )
 
-    amount: Mapped[Decimal] = mapped_column(
-        Numeric(precision=18, scale=2), nullable=False
-    )
+    start_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
-    currency: Mapped[str] = mapped_column(
-        String(3), nullable=False, default="INR"
-    )
-
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-
-    # IMPORTANT: NOT metadata (reserved)
-    meta_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-
-    is_active: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default="true"
-    )
-
-    proof_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-
-    start_date: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-
-    end_date: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    end_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
+        DateTime(timezone=True), server_default=func.now()
     )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
-        nullable=False,
     )
 
-    def amount_as_decimal(self) -> Decimal:
-        return Decimal(str(self.amount))
 
-    def duration_days(self) -> Optional[int]:
-        if self.start_date and self.end_date:
-            return (self.end_date - self.start_date).days
-        return None
-
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self):
         return {
             "id": self.id,
             "title": self.title,
             "recipient": self.recipient,
-            "amount": str(self.amount),
+            "sector": self.sector,
+            "total_allocation": self.total_allocation,
             "currency": self.currency,
             "description": self.description,
             "meta_data": self.meta_data,
+            "status": self.status.value if hasattr(self.status, 'value') else str(self.status),
             "is_active": self.is_active,
-            "proof_id": self.proof_id,
+            "is_flagged": self.is_flagged,
+            "risk_score": self.risk_score,
+            "transparency_score": self.transparency_score,
             "start_date": self.start_date.isoformat() if self.start_date else None,
             "end_date": self.end_date.isoformat() if self.end_date else None,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
-Index(
-    "ix_subsidies_recipient_active",
-    Subsidy.recipient,
-    Subsidy.is_active,
-)
+Index("ix_sector_status", Subsidy.sector, Subsidy.status)

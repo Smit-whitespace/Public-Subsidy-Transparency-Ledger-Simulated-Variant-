@@ -1,72 +1,147 @@
-"""
-backend/services/disbursement_service.py
+# backend/services/disbursement_service.py
 
-Disbursement service: transactional helpers to create, fetch, list, update, and delete disbursement records. Normalizes monetary inputs to Decimal.
-"""
-
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-from datetime import datetime
+from datetime import datetime, timedelta
+
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import func
 
 from backend.models.disbursement import Disbursement as DisbursementModel
-from backend.schemas.disbursement import DisbursementCreate, DisbursementUpdate, Disbursement as DisbursementSchema
+from backend.models.subsidy import Subsidy as SubsidyModel
+
+from backend.schemas.disbursement import DisbursementCreate, DisbursementUpdate
+
+from backend.services.risk_engine import recalculate_subsidy_score
+from backend.services.risk_event_service import create_risk_event
 
 
-# Quantize currency amounts to 2 decimal places for consistent storage
 DECIMAL_QUANTIZE = Decimal("0.01")
 
 
+# ==========================================================
+# AMOUNT NORMALIZATION
+# ==========================================================
+
 def normalize_amount(value: object) -> Decimal:
-    """
-    Convert and normalize monetary value to Decimal with 2 decimal places.
-    
-    Accepts string, float, or Decimal input and returns a properly quantized Decimal.
-    Rejects negative or zero amounts.
-    
-    Args:
-        value: Monetary amount as str, float, or Decimal
-    
-    Returns:
-        Normalized Decimal with 2 decimal places
-    
-    Raises:
-        ValueError: If value is invalid, not a number, or non-positive
-    """
+
     try:
         decimal_value = Decimal(str(value))
     except (InvalidOperation, ValueError, TypeError):
-        raise ValueError(f"Invalid amount value: {value}. Must be a valid number.")
-    
+        raise ValueError(f"Invalid amount value: {value}")
+
     if decimal_value <= 0:
-        raise ValueError(f"Amount must be positive, got: {decimal_value}")
-    
-    # Quantize to 2 decimal places using banker's rounding
+        raise ValueError("Amount must be positive")
+
     return decimal_value.quantize(DECIMAL_QUANTIZE, rounding=ROUND_HALF_UP)
 
 
-def create_disbursement(db: Session, disb_in: DisbursementCreate, commit: bool = True) -> DisbursementModel:
+# ==========================================================
+# ANOMALY DETECTION ENGINE
+# ==========================================================
+
+def detect_disbursement_anomalies(
+    db: Session,
+    subsidy_id: int,
+    amount: Decimal
+) -> None:
     """
-    Create and persist a new disbursement record.
-    
-    Args:
-        db: SQLAlchemy session
-        disb_in: Validated DisbursementCreate schema
-        commit: Whether to commit immediately (default True)
-    
-    Returns:
-        Created DisbursementModel instance
-    
-    Raises:
-        RuntimeError: If database operation fails
+    Basic anomaly detection rules for disbursements.
+
+    Rules:
+    1. Disbursement > 40% of subsidy allocation
+    2. More than 3 disbursements within 24 hours
+    3. Disbursement amount > 2x historical average
     """
+
+    subsidy = db.query(SubsidyModel).filter_by(id=subsidy_id).first()
+
+    if not subsidy:
+        return
+
+    # -----------------------------------------
+    # Rule 1: Large allocation percentage
+    # -----------------------------------------
+
+    if subsidy.total_allocation and subsidy.total_allocation > 0:
+
+        ratio = amount / subsidy.total_allocation
+
+        if ratio > Decimal("0.40"):
+
+            create_risk_event(
+                db=db,
+                subsidy_id=subsidy_id,
+                event_type="large_disbursement",
+                severity="medium",
+                description="Disbursement exceeds 40% of subsidy allocation"
+            )
+
+    # -----------------------------------------
+    # Rule 2: Rapid disbursements
+    # -----------------------------------------
+
+    window_start = datetime.utcnow() - timedelta(hours=24)
+
+    count_recent = (
+        db.query(func.count(DisbursementModel.id))
+        .filter(
+            DisbursementModel.subsidy_id == subsidy_id,
+            DisbursementModel.date >= window_start
+        )
+        .scalar()
+    )
+
+    if count_recent and count_recent >= 3:
+
+        create_risk_event(
+            db=db,
+            subsidy_id=subsidy_id,
+            event_type="rapid_disbursements",
+            severity="medium",
+            description="Multiple disbursements detected within 24 hours"
+        )
+
+    # -----------------------------------------
+    # Rule 3: Amount spike
+    # -----------------------------------------
+
+    avg_amount = (
+        db.query(func.avg(DisbursementModel.amount))
+        .filter(DisbursementModel.subsidy_id == subsidy_id)
+        .scalar()
+    )
+
+    if avg_amount:
+
+        avg_decimal = Decimal(str(avg_amount))
+
+        if amount > avg_decimal * Decimal("2"):
+
+            create_risk_event(
+                db=db,
+                subsidy_id=subsidy_id,
+                event_type="amount_spike",
+                severity="high",
+                description="Disbursement significantly exceeds historical average"
+            )
+
+
+# ==========================================================
+# CREATE
+# ==========================================================
+
+def create_disbursement(
+    db: Session,
+    disb_in: DisbursementCreate,
+    commit: bool = True
+) -> DisbursementModel:
+
     try:
-        # Normalize amount to Decimal with proper quantization
+
         normalized_amount = normalize_amount(disb_in.amount)
-        
-        # Create disbursement model with explicit field mapping
+
         disbursement = DisbursementModel(
             subsidy_id=disb_in.subsidy_id,
             amount=normalized_amount,
@@ -75,34 +150,49 @@ def create_disbursement(db: Session, disb_in: DisbursementCreate, commit: bool =
             date=disb_in.date,
             notes=disb_in.notes
         )
-        
+
         db.add(disbursement)
-        
+
         if commit:
+
             db.commit()
             db.refresh(disbursement)
-        
+
+            # ---------------------------------
+            # Run anomaly detection
+            # ---------------------------------
+
+            detect_disbursement_anomalies(
+                db,
+                disbursement.subsidy_id,
+                normalized_amount
+            )
+
+            # ---------------------------------
+            # Recalculate risk score
+            # ---------------------------------
+
+            recalculate_subsidy_score(db, disbursement.subsidy_id)
+
         return disbursement
-        
+
     except ValueError:
-        # Re-raise validation errors as-is
         raise
-    except SQLAlchemyError as e:
+
+    except SQLAlchemyError:
         db.rollback()
         raise RuntimeError("DB error while creating disbursement")
 
 
-def get_disbursement_by_id(db: Session, disbursement_id: int) -> Optional[DisbursementModel]:
-    """
-    Retrieve a single disbursement record by ID.
-    
-    Args:
-        db: SQLAlchemy session
-        disbursement_id: Primary key of disbursement record
-    
-    Returns:
-        DisbursementModel if found, None otherwise
-    """
+# ==========================================================
+# READ
+# ==========================================================
+
+def get_disbursement_by_id(
+    db: Session,
+    disbursement_id: int
+) -> Optional[DisbursementModel]:
+
     return db.query(DisbursementModel).filter_by(id=disbursement_id).first()
 
 
@@ -115,51 +205,40 @@ def list_disbursements(
     limit: int = 50,
     offset: int = 0
 ) -> List[DisbursementModel]:
-    """
-    List disbursement records with optional filters and pagination.
-    
-    Args:
-        db: SQLAlchemy session
-        subsidy_id: Filter by subsidy ID (optional)
-        min_amount: Minimum amount filter as Decimal (optional)
-        max_amount: Maximum amount filter as Decimal (optional)
-        limit: Maximum number of records to return (must be >= 1)
-        offset: Number of records to skip (must be >= 0)
-    
-    Returns:
-        List of DisbursementModel instances
-    
-    Raises:
-        ValueError: If limit or offset are invalid
-        RuntimeError: If database operation fails
-    """
+
     if limit < 1:
-        raise ValueError(f"limit must be >= 1, got {limit}")
+        raise ValueError("limit must be >= 1")
+
     if offset < 0:
-        raise ValueError(f"offset must be >= 0, got {offset}")
-    
+        raise ValueError("offset must be >= 0")
+
     try:
+
         query = db.query(DisbursementModel)
-        
+
         if subsidy_id is not None:
             query = query.filter(DisbursementModel.subsidy_id == subsidy_id)
-        
+
         if min_amount is not None:
-            # Accept Decimal directly; callers should normalize if needed
             query = query.filter(DisbursementModel.amount >= min_amount)
-        
+
         if max_amount is not None:
             query = query.filter(DisbursementModel.amount <= max_amount)
-        
-        # Order by date descending (most recent first)
-        query = query.order_by(DisbursementModel.date.desc())
-        query = query.limit(limit).offset(offset)
-        
-        return query.all()
-        
-    except SQLAlchemyError as e:
+
+        return (
+            query.order_by(DisbursementModel.date.desc())
+            .limit(limit)
+            .offset(offset)
+            .all()
+        )
+
+    except SQLAlchemyError:
         raise RuntimeError("DB error while listing disbursements")
 
+
+# ==========================================================
+# UPDATE
+# ==========================================================
 
 def update_disbursement(
     db: Session,
@@ -167,106 +246,99 @@ def update_disbursement(
     changes: DisbursementUpdate,
     commit: bool = True
 ) -> DisbursementModel:
-    """
-    Update an existing disbursement record with partial changes.
-    
-    Args:
-        db: SQLAlchemy session
-        disbursement_id: Primary key of disbursement to update
-        changes: DisbursementUpdate schema with fields to update
-        commit: Whether to commit immediately (default True)
-    
-    Returns:
-        Updated DisbursementModel instance
-    
-    Raises:
-        ValueError: If disbursement not found
-        RuntimeError: If database operation fails
-    """
+
     disbursement = get_disbursement_by_id(db, disbursement_id)
+
     if not disbursement:
         raise ValueError("Disbursement not found")
-    
+
     try:
+
         update_data = changes.dict(exclude_unset=True)
-        
-        # Normalize amount if provided
+
         if "amount" in update_data and update_data["amount"] is not None:
             update_data["amount"] = normalize_amount(update_data["amount"])
-        
-        # Apply updates to model
+
         for field, value in update_data.items():
             setattr(disbursement, field, value)
-        
+
         if commit:
+
             db.commit()
             db.refresh(disbursement)
-        
+
+            recalculate_subsidy_score(db, disbursement.subsidy_id)
+
         return disbursement
-        
+
     except ValueError:
-        # Re-raise validation errors as-is
         raise
-    except SQLAlchemyError as e:
+
+    except SQLAlchemyError:
         db.rollback()
         raise RuntimeError("DB error while updating disbursement")
 
 
-def delete_disbursement(db: Session, disbursement_id: int, commit: bool = True) -> None:
-    """
-    Delete a disbursement record.
-    
-    Note: This performs a hard delete. Production systems may prefer soft-delete
-    (is_deleted flag) to maintain audit trail and referential integrity.
-    
-    Args:
-        db: SQLAlchemy session
-        disbursement_id: Primary key of disbursement to delete
-        commit: Whether to commit immediately (default True)
-    
-    Raises:
-        ValueError: If disbursement not found
-        RuntimeError: If database operation fails
-    """
+# ==========================================================
+# DELETE
+# ==========================================================
+
+def delete_disbursement(
+    db: Session,
+    disbursement_id: int,
+    commit: bool = True
+) -> None:
+
     disbursement = get_disbursement_by_id(db, disbursement_id)
+
     if not disbursement:
         raise ValueError("Disbursement not found")
-    
+
+    subsidy_id = disbursement.subsidy_id
+
     try:
+
         db.delete(disbursement)
-        
+
         if commit:
+
             db.commit()
-            
-    except SQLAlchemyError as e:
+
+            recalculate_subsidy_score(db, subsidy_id)
+
+    except SQLAlchemyError:
         db.rollback()
         raise RuntimeError("DB error while deleting disbursement")
 
 
-def total_disbursed_for_subsidy(db: Session, subsidy_id: int) -> Decimal:
-    """
-    Calculate the total amount disbursed for a given subsidy.
-    
-    Args:
-        db: SQLAlchemy session
-        subsidy_id: ID of the subsidy to sum disbursements for
-    
-    Returns:
-        Total amount as Decimal (quantized to 2 decimal places), or Decimal(0) if no disbursements
-    """
+# ==========================================================
+# AGGREGATION
+# ==========================================================
+
+def total_disbursed_for_subsidy(
+    db: Session,
+    subsidy_id: int
+) -> Decimal:
+
     try:
-        result = db.query(func.sum(DisbursementModel.amount)).filter(
-            DisbursementModel.subsidy_id == subsidy_id
-        ).scalar()
-        
+
+        result = (
+            db.query(func.sum(DisbursementModel.amount))
+            .filter(DisbursementModel.subsidy_id == subsidy_id)
+            .scalar()
+        )
+
         if result is None:
             return Decimal("0.00")
-        
-        # Ensure result is Decimal and properly quantized
+
         total = Decimal(str(result))
-        return total.quantize(DECIMAL_QUANTIZE, rounding=ROUND_HALF_UP)
-        
-    except SQLAlchemyError as e:
+
+        return total.quantize(
+            DECIMAL_QUANTIZE,
+            rounding=ROUND_HALF_UP
+        )
+
+    except SQLAlchemyError:
         raise RuntimeError("DB error while computing total disbursed")
 
 
@@ -279,5 +351,3 @@ __all__ = [
     "delete_disbursement",
     "total_disbursed_for_subsidy"
 ]
-
-# Test hint: use in-memory sqlite Session, call create_disbursement(db, DisbursementCreate(...)), then assert total_disbursed_for_subsidy(db, subsidy_id) returns expected Decimal.

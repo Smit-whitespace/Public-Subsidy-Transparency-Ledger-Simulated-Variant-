@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![FastAPI](https://img.shields.io/badge/Backend-FastAPI-green)
-![MongoDB](https://img.shields.io/badge/Database-MongoDB-darkgreen)
+![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-blue)
 ![License](https://img.shields.io/badge/License-View--Only-lightgrey)
 ![Status](https://img.shields.io/badge/Status-Active%20Development-yellow)
 
@@ -125,10 +125,10 @@ Client / Admin / Auditor
 * Pydantic-based validation
 * Modular route design
 
-### 🔹 Database Layer (MongoDB)
+### 🔹 Database Layer (PostgreSQL)
 
-* Hierarchical transaction storage
-* Ledger event persistence
+* Relational transaction storage
+* SQLAlchemy ORM with ACID compliance
 * Audit & anomaly metadata storage
 
 ### 🔹 Anomaly Detection (In Progress)
@@ -144,7 +144,7 @@ Client / Admin / Auditor
 | Layer          | Technology                 | Role                                 |
 | -------------- | -------------------------- | ------------------------------------ |
 | Backend        | FastAPI (Python)           | API orchestration & validation       |
-| Database       | MongoDB                    | Ledger events, audits, metadata      |
+| Database       | PostgreSQL                   | Relational data, ACID compliance     |
 | Ledger Model   | Simulated Event Ledger     | Immutable-style transaction tracking |
 | AI / Analytics | Pandas, Scikit-learn       | Anomaly detection & risk scoring     |
 | Frontend       | React + Tailwind (Planned) | Transparency dashboard               |

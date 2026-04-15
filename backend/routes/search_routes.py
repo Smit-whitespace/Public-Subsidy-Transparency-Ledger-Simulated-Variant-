@@ -42,7 +42,7 @@ from backend.schemas.project import Project
 from backend.schemas.subsidy import Subsidy
 
 
-router = APIRouter(prefix="/api/search", tags=["search"])
+router = APIRouter( tags=["search"])
 
 
 # Whitelists for safe sorting and field suggestions to prevent SQL injection.

@@ -146,7 +146,6 @@ def create_user(db: Session, user_in: UserCreate, commit: bool = True) -> UserMo
         user = UserModel(
             username=user_in.username,
             hashed_password=hashed_password,
-            is_admin=user_in.is_admin
         )
         
         db.add(user)

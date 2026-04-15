@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import SearchBar from "../components/SearchBar";
@@ -6,38 +6,67 @@ import FilterPanel from "../components/FilterPanel";
 import DataTable from "../components/DataTable";
 import AuditTimeline from "../components/AuditTimeline";
 import Loader from "../components/Loader";
-import { fetchAudits } from "../api/audit";
-import useAuth from "../hooks/useAuth";
+
+import { fetchAudits } from "../services/auditService";
+import { useAuth } from "../context/AuthContext";
 import useFetch from "../hooks/useFetch";
 import useDebounce from "../hooks/useDebounce";
 
 export default function AuditTrail() {
-  const { user, token, isAuthenticated } = useAuth();
+
+  const { token, isAuthenticated } = useAuth();
+
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState({});
+  const [debouncedFilters, setDebouncedFilters] = useState({});
 
-  const debouncedQuery = useDebounce(query, 400);
+  // Debounce filter changes to avoid instant API calls
+  const debouncedEntity = useDebounce(filters.entity, 500);
+  const debouncedAction = useDebounce(filters.action, 500);
 
-  const { data, loading, error, execute } = useFetch(
-    () =>
-      fetchAudits({
-        limit: 50,
-        offset: 0,
-        entity: filters.entity || null,
-        action: filters.action || null,
-        token
-      }),
-    { immediate: true }
-  );
-
+  // Update debounced filters only when debounced values change
   useEffect(() => {
-    if (isAuthenticated && token) {
-      execute();
+    setDebouncedFilters({
+      entity: debouncedEntity,
+      action: debouncedAction
+    });
+  }, [debouncedEntity, debouncedAction]);
+
+  const fetchAuditData = useCallback(() => {
+
+    if (!token) {
+      return Promise.resolve([]);
     }
-  }, [debouncedQuery, filters, token, isAuthenticated, execute]);
+
+    return fetchAudits({
+      limit: 50,
+      offset: 0,
+      entity: debouncedFilters.entity || null,
+      action: debouncedFilters.action || null,
+      token
+    });
+
+  }, [debouncedFilters, token]);
+
+  const {
+    data,
+    loading,
+    error,
+    execute
+  } = useFetch(fetchAuditData, { immediate: true });
+
+useEffect(() => {
+  if (isAuthenticated && token) {
+    execute();
+  }
+}, [debouncedFilters, token, isAuthenticated, execute]);
 
   if (!isAuthenticated) {
-    return <div className="audit-trail unauthorized">Access denied</div>;
+    return (
+      <div className="audit-trail unauthorized">
+        Access denied
+      </div>
+    );
   }
 
   if (loading) {
@@ -45,7 +74,11 @@ export default function AuditTrail() {
   }
 
   if (error) {
-    return <div className="audit-trail error">Failed to load audit trail</div>;
+    return (
+      <div className="audit-trail error">
+        Failed to load audit trail
+      </div>
+    );
   }
 
   const audits = data?.data || data || [];
@@ -85,13 +118,15 @@ export default function AuditTrail() {
       render: (row) => row.performed_by || "system"
     },
     {
-      key: "timestamp",
+      key: "created_at",
       label: "Timestamp",
       render: (row) => {
+        // Backend field is created_at, not timestamp
+        const ts = row.created_at || row.timestamp;
         try {
-          return new Date(row.timestamp).toLocaleString();
+          return new Date(ts).toLocaleString();
         } catch (_) {
-          return row.timestamp || "N/A";
+          return ts || "N/A";
         }
       }
     }
@@ -107,10 +142,15 @@ export default function AuditTrail() {
 
   return (
     <div className="audit-trail">
-      <Navbar user={user} />
+
+      <Navbar />
+
       <div className="audit-layout">
-        <Sidebar user={user} />
+
+        <Sidebar />
+
         <main className="audit-content">
+
           <h1>Audit Trail</h1>
           <p>Chronological record of system actions</p>
 
@@ -134,15 +174,23 @@ export default function AuditTrail() {
 
           <section>
             <h2>Audit Records</h2>
-            <DataTable columns={columns} data={audits} />
+            <DataTable
+              columns={columns}
+              data={audits}
+            />
           </section>
 
           <section>
             <h2>Audit Timeline</h2>
-            <AuditTimeline audits={audits} />
+            <AuditTimeline
+              audits={audits}
+            />
           </section>
+
         </main>
+
       </div>
+
     </div>
   );
 }

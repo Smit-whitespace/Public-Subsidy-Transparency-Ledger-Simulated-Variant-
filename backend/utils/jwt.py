@@ -6,7 +6,7 @@ JWT helpers: create and decode HS256 JSON Web Tokens using secret from settings.
 
 from __future__ import annotations
 from typing import Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from backend.config import settings
 
@@ -77,7 +77,7 @@ def create_token(subject: Dict[str, Any], expires_delta: Optional[timedelta] = N
     if expires_delta is None:
         expires_delta = timedelta(minutes=DEFAULT_EXPIRE_MINUTES)
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expire = now + expires_delta
     
     # Build payload with standard claims

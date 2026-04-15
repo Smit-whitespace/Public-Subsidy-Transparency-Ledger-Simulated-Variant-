@@ -33,7 +33,7 @@ from backend.config import settings
 from backend.database.connection import engine
 
 
-router = APIRouter(prefix="/api/health", tags=["health"])
+router = APIRouter( tags=["health"])
 
 
 def _mask_connection_string(url: str) -> str:

@@ -1,27 +1,18 @@
-function formatCurrency(value, options = {}) {
+export function formatCurrency(value) {
+
   if (value === null || value === undefined) {
-    return "—";
+    return "₹0";
   }
 
-  const numValue = typeof value === "string" ? parseFloat(value) : value;
+  const number = Number(value);
 
-  if (isNaN(numValue)) {
-    return "—";
+  if (Number.isNaN(number)) {
+    return "₹0";
   }
 
-  const locale = options.locale || "en-IN";
-  const currency = options.currency || "INR";
-  const minimumFractionDigits = options.minimumFractionDigits !== undefined ? options.minimumFractionDigits : 0;
-  const maximumFractionDigits = options.maximumFractionDigits !== undefined ? options.maximumFractionDigits : 2;
-
-  const formatter = new Intl.NumberFormat(locale, {
+  return new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: currency,
-    minimumFractionDigits: minimumFractionDigits,
-    maximumFractionDigits: maximumFractionDigits
-  });
-
-  return formatter.format(numValue);
+    currency: "INR",
+    maximumFractionDigits: 2
+  }).format(number);
 }
-
-export { formatCurrency };

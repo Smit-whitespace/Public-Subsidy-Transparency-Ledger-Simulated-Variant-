@@ -1,41 +1,71 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import SearchBar from "../components/SearchBar";
 import FilterPanel from "../components/FilterPanel";
 import ProjectCard from "../components/ProjectCard";
 import Loader from "../components/Loader";
-import { fetchProjects } from "../api/projects";
-import useAuth from "../hooks/useAuth";
+
+import { fetchProjects } from "../services/projectService";
+import { useAuth } from "../context/AuthContext";
 import useFetch from "../hooks/useFetch";
 import useDebounce from "../hooks/useDebounce";
 
 export default function ProjectList() {
-  const { user, token, isAuthenticated } = useAuth();
+
+  const navigate = useNavigate();
+  const { token, isAuthenticated, user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState({});
+  const [debouncedFilters, setDebouncedFilters] = useState({});
 
-  const debouncedQuery = useDebounce(query, 400);
-
-  const { data, loading, error, execute } = useFetch(
-    () =>
-      fetchProjects({
-        limit: 50,
-        offset: 0,
-        status: filters.status || null,
-        token
-      }),
-    { immediate: true }
-  );
+  // Debounce filter changes to avoid instant API calls
+  const debouncedStatus = useDebounce(filters.status, 500);
 
   useEffect(() => {
-    if (isAuthenticated && token) {
-      execute();
+    setDebouncedFilters({
+      status: debouncedStatus
+    });
+  }, [debouncedStatus]);
+
+  const fetchProjectData = useCallback(() => {
+
+    if (!token) {
+      return Promise.resolve([]);
     }
-  }, [debouncedQuery, filters, token, isAuthenticated, execute]);
+
+    return fetchProjects({
+      limit: 50,
+      offset: 0,
+      status: debouncedFilters.status || null,
+      token
+    });
+
+  }, [debouncedFilters, token]);
+
+  const {
+    data,
+    loading,
+    error,
+    execute
+  } = useFetch(fetchProjectData, { immediate: true });
+
+useEffect(() => {
+  if (isAuthenticated && token) {
+    execute();
+  }
+}, [debouncedFilters, token, isAuthenticated, execute]);
 
   if (!isAuthenticated) {
-    return <div className="project-list unauthorized">Access denied</div>;
+    return (
+      <div className="project-list unauthorized">
+        Access denied
+      </div>
+    );
   }
 
   if (loading) {
@@ -43,7 +73,11 @@ export default function ProjectList() {
   }
 
   if (error) {
-    return <div className="project-list error">Failed to load projects</div>;
+    return (
+      <div className="project-list error">
+        Failed to load projects
+      </div>
+    );
   }
 
   const projects = data?.data || data || [];
@@ -65,15 +99,21 @@ export default function ProjectList() {
   }
 
   function handleProjectClick(project) {
-    // Placeholder for navigation
+    if (!project?.id) return;
+    navigate(`/projects/${project.id}`);
   }
 
   return (
     <div className="project-list">
-      <Navbar user={user} />
+
+      <Navbar />
+
       <div className="project-layout">
-        <Sidebar user={user} />
+
+        <Sidebar />
+
         <main className="project-content">
+
           <h1>Projects</h1>
           <p>Browse and manage public projects</p>
 
@@ -96,22 +136,46 @@ export default function ProjectList() {
           </section>
 
           <section>
+
             {projects.length > 0 ? (
+
               <div className="projects-grid">
+
                 {projects.map((project, index) => (
-                  <ProjectCard
-                    key={project.id || index}
-                    project={project}
-                    onClick={handleProjectClick}
-                  />
+                  <div key={project.id || index} style={{ position: "relative" }}>
+                    <ProjectCard
+                      project={project}
+                      onClick={handleProjectClick}
+                    />
+                    {isAdmin && (
+                      <div className="card-actions" style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+                        <button
+                          className="btn-secondary"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/admin/edit-project/${project.id}`); }}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 ))}
+
               </div>
+
             ) : (
-              <div className="project-list empty">No projects found</div>
+
+              <div className="project-list empty">
+                No projects found
+              </div>
+
             )}
+
           </section>
+
         </main>
+
       </div>
+
     </div>
   );
 }

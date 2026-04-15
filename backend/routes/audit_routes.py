@@ -28,7 +28,7 @@ from backend.models.audit import AuditRecord as AuditRecordModel
 from backend.schemas.audit import AuditCreate, AuditRecord
 
 
-router = APIRouter(prefix="/api/audits", tags=["audits"])
+router = APIRouter(tags=["audits"])
 
 
 @router.get("/", response_model=List[AuditRecord])
