@@ -52,8 +52,6 @@ To design and implement a **proof-of-concept system** that shows how public subs
 * A real government data pipeline
 * A financial transaction system
 
-(That honesty alone saves you from awkward viva questions.)
-
 ---
 
 ## ⚙️ Updated System Architecture
